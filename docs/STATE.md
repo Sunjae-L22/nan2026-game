@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1, M1 complete)_
+_Last updated: 2026-07-17 (session 1, M2 complete & live-verified)_
 
 ## Facts
 
@@ -25,9 +25,16 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. M2 start: game shell (wave spawner, gate HP, spell casting from recognition, win/lose/restart)
-2. M2: spell effects v1 + balance pass → playable-ugly full loop
-3. M3: juice + mobile touch + balance
+1. M3: balance pass from real playtests (collect user feel: difficulty curve, spell usefulness)
+2. M3: juice — sound (WebAudio synth), better kill fx, wave banners, combo/score pops, monster variety
+3. M3: mobile layout polish + title screen art; then M4 video/docs
+
+## M2 verification (2026-07-17, live on Pages)
+
+- Full loop verified in real browser: title → START → waves spawn → draw-to-cast works (sloppy star at 50% → idle-cast per rules) → GAME OVER overlay on gate death → R restart → fresh run → VICTORY overlay via debug key. Zero console errors.
+- 16 node logic tests green (all spells, blocking, shield, slow, burn, win/lose, confidence scaling).
+- NOTE: Pages/browser cache serves stale files after push during dev — hard reload (Cmd+Shift+R) needed; judges unaffected (first visit).
+- M3 polish list: GATE label overlaps HP bar; monster visual variety; sound; wave start banner; balance unknown at high waves.
 
 ## Milestones (each ends playable)
 
