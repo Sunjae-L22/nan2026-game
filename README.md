@@ -1,4 +1,4 @@
-# NAN 2026 Hackathon — [Game Title TBD]
+# Scribble Summoner — NAN 2026 Hackathon
 
 **▶ Play now: <https://sunjae-l22.github.io/nan2026-game/>**
 
@@ -8,7 +8,7 @@ A browser game built for the NAN 2026 Hackathon (NHN), created end-to-end with A
 
 ## Status
 
-Scaffold + deploy pipeline stage. Game concept selection in progress — see [`docs/STATE.md`](docs/STATE.md).
+Concept locked: draw-to-cast wave defense with on-device sketch recognition (TF.js). Building M1: recognition pipeline — see [`docs/STATE.md`](docs/STATE.md).
 
 ## Run locally
 
