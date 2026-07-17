@@ -1,0 +1,15 @@
+# OS / cloud-sync noise
+.DS_Store
+Icon?
+desktop.ini
+Thumbs.db
+._*
+
+# Editors
+.vscode/
+.idea/
+
+# Dev
+node_modules/
+*.log
+.env
