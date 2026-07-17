@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1)_
+_Last updated: 2026-07-17 (session 1, post-deploy)_
 
 ## Facts
 
@@ -8,7 +8,7 @@ _Last updated: 2026-07-17 (session 1)_
 - Deadline: **2026-08-09 23:59 KST** (freeze target: 2026-08-09 morning, half-day buffer)
 - Team: solo → Deliverable 5 (team roles) not required
 - GitHub: **Sunjae-L22**, repo `nan2026-game` (public), dev in VS Code
-- Play URL (once Pages enabled): https://sunjae-l22.github.io/nan2026-game/
+- Play URL (LIVE, verified): https://sunjae-l22.github.io/nan2026-game/
 
 ## CONCEPT — LOCKED 2026-07-17
 
@@ -19,13 +19,13 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Current status
 
-- Repo scaffolded + git history started (main). Concept locked. NOT yet on GitHub — waiting on user: create repo, push, enable Pages.
+- Live on GitHub Pages, verified 2026-07-17 in Chrome: renders correctly, 120 FPS, exactly one expected console log, zero errors. Repo public, remote wired (user pushes; Claude commits locally).
 
 ## Next 3 steps
 
-1. User: create `Sunjae-L22/nan2026-game` (public) on GitHub → push → enable Pages (Settings → Pages → Deploy from a branch → main / root)
-2. Claude: verify live Pages URL (cold load <3s, zero console errors, mobile viewport)
-3. M1 build: drawing canvas + 28×28 preprocessing + train CNN on Quick Draw classes → TF.js model → in-browser recognition demo page
+1. M1: drawing canvas + 28×28 preprocessing (stroke → model input)
+2. M1: pick 6-8 visually distinct Quick Draw classes, train small CNN, convert to TF.js, log licenses in ASSETS.md
+3. M1: in-browser recognition demo on Pages — draw → label+confidence, measure accuracy (gate: ≥90% to proceed, else cut classes / pivot B)
 
 ## Milestones (each ends playable)
 
@@ -49,4 +49,3 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 - Quick Draw dataset license (CC BY 4.0) + TF.js (Apache-2.0): verify and log in ASSETS.md the moment they enter the repo
 - Git repo inside Google Drive-synced folder: works, but if sync/git conflicts appear, fallback = user clones from GitHub to local path
 - Commit author email must be registered on the Sunjae-L22 GitHub account or commits won't link to profile
-- Pages deploy unverified until first push
