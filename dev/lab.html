@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scribble Summoner — Recognition Lab</title>
+<style>
+  body{margin:0;background:#0f1220;color:#e8ecf1;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;padding:16px;box-sizing:border-box}
+  canvas{background:#171b2e;border-radius:12px;touch-action:none;cursor:crosshair}
+  .col{display:flex;flex-direction:column;gap:12px}
+  .bar{height:22px;background:#2a3050;border-radius:6px;overflow:hidden;position:relative;width:260px}
+  .fill{height:100%;background:linear-gradient(90deg,#4cc9f0,#a06bff);width:0%;transition:width .12s}
+  .label{position:absolute;left:8px;top:2px;font-size:13px;text-shadow:0 1px 2px #000}
+  button{background:#2a3050;color:#e8ecf1;border:0;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+  #debug{image-rendering:pixelated;border-radius:6px}
+  h1{font-size:16px;opacity:.8;margin:0}
+  .hint{font-size:12px;opacity:.5;max-width:280px}
+</style>
+</head>
+<body>
+<div class="col">
+  <h1>Recognition Lab — draw a shape</h1>
+  <canvas id="pad" width="280" height="280"></canvas>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="clear">Clear</button>
+    <button id="undo">Undo stroke</button>
+    <canvas id="debug" width="28" height="28" style="width:56px;height:56px;margin-left:auto"></canvas>
+  </div>
+  <div class="hint">classes: lightning, circle, triangle, star, cloud, sword, square, campfire — model runs 100% in your browser (~0.6 ms, no server)</div>
+</div>
+<div class="col" id="results"></div>
+<script type="module">
+import { strokesToInput } from '../src/preprocess.js';
+import { loadModel, predict } from '../src/nn.js';
+
+const model = loadModel(await (await fetch('../assets/model/model.json')).json());
+const results = document.getElementById('results');
+const rows = model.classes.map((c) => {
+  const bar = document.createElement('div'); bar.className = 'bar';
+  const fill = document.createElement('div'); fill.className = 'fill';
+  const label = document.createElement('div'); label.className = 'label'; label.textContent = c;
+  bar.append(fill, label); results.append(bar);
+  return { fill, label, c };
+});
+
+const pad = document.getElementById('pad'), ctx = pad.getContext('2d');
+const dbg = document.getElementById('debug').getContext('2d');
+let strokes = [], cur = null, raf = 0;
+
+const pos = (e) => {
+  const r = pad.getBoundingClientRect();
+  return [(e.clientX - r.left) * pad.width / r.width, (e.clientY - r.top) * pad.height / r.height];
+};
+pad.addEventListener('pointerdown', (e) => { pad.setPointerCapture(e.pointerId); const [x, y] = pos(e); cur = [[x], [y]]; strokes.push(cur); schedule(); });
+pad.addEventListener('pointermove', (e) => { if (!cur) return; const [x, y] = pos(e); cur[0].push(x); cur[1].push(y); schedule(); });
+addEventListener('pointerup', () => { cur = null; schedule(); });
+document.getElementById('clear').onclick = () => { strokes = []; schedule(); };
+document.getElementById('undo').onclick = () => { strokes.pop(); schedule(); };
+
+function schedule() { if (!raf) raf = requestAnimationFrame(update); }
+function update() {
+  raf = 0;
+  ctx.clearRect(0, 0, 280, 280);
+  ctx.strokeStyle = '#e8ecf1'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const [xs, ys] of strokes) {
+    ctx.beginPath(); ctx.moveTo(xs[0], ys[0]);
+    for (let i = 1; i < xs.length; i++) ctx.lineTo(xs[i], ys[i]);
+    ctx.stroke();
+  }
+  const x = strokes.length ? strokesToInput(strokes) : null;
+  if (!x) { rows.forEach((r) => { r.fill.style.width = '0%'; r.label.textContent = r.c; }); dbg.clearRect(0, 0, 28, 28); return; }
+  const img = dbg.createImageData(28, 28);
+  for (let i = 0; i < 784; i++) {
+    const v = Math.round(x[i] * 255);
+    img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255;
+  }
+  dbg.putImageData(img, 0, 0);
+  const p = predict(model, x);
+  rows.forEach((r, i) => {
+    r.fill.style.width = (p[i] * 100).toFixed(1) + '%';
+    r.label.textContent = `${r.c} ${(p[i] * 100).toFixed(1)}%`;
+  });
+}
+</script>
+</body>
+</html>

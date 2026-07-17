@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1, post-deploy)_
+_Last updated: 2026-07-17 (session 1, M1 complete)_
 
 ## Facts
 
@@ -19,13 +19,15 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Current status
 
-- Live on GitHub Pages, verified 2026-07-17 in Chrome: renders correctly, 120 FPS, exactly one expected console log, zero errors. Repo public, remote wired (user pushes; Claude commits locally).
+- Live on GitHub Pages (verified in Chrome: 120 FPS, zero console errors)
+- **M1 COMPLETE — recognition gate passed.** 8-class model, E2E 96.60% on 4,800 held-out drawings through the exact game pipeline (gate was 90%). Val 96.5%, all classes ≥93%. Inference 0.6ms, model 440KB, zero runtime dependencies.
+- Final classes & spell mapping (draft): lightning=chain bolt, circle=shield, triangle=spike trap, star=big blast, cloud=poison cloud, sword=slash, square=stone wall, campfire=fire zone
 
 ## Next 3 steps
 
-1. M1: drawing canvas + 28×28 preprocessing (stroke → model input)
-2. M1: pick 6-8 visually distinct Quick Draw classes, train small CNN, convert to TF.js, log licenses in ASSETS.md
-3. M1: in-browser recognition demo on Pages — draw → label+confidence, measure accuracy (gate: ≥90% to proceed, else cut classes / pivot B)
+1. User: `git push` → Claude verifies dev/lab.html live on Pages (draw & recognize in real browser)
+2. M2 start: game shell (wave spawner, gate HP, spell casting from recognition, win/lose/restart)
+3. M2: spell effects v1 + balance pass → playable-ugly full loop
 
 ## Milestones (each ends playable)
 
@@ -38,14 +40,13 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 ## Decisions
 
 - Concept A locked (see above); no revisiting
-- Stack: vanilla Canvas/JS + TF.js (CDN) — no Phaser needed for this concept, no build step
+- Stack: vanilla Canvas/JS, ES modules, no build step. In-game AI: hand-written JS inference engine (src/nn.js) — TF.js dropped, zero runtime deps
 - Neutral repo name `nan2026-game` → Pages URL stable; game title lives in README/docs
-- Model trained offline (script kept in repo under /training), only converted TF.js artifacts shipped
+- Model trained offline with hand-rolled NumPy trainer (training/train_np.py — sandbox cannot run TF; gradcheck-verified). Only weights JSON shipped (assets/model/model.json)
 - Docs in English during dev; final PDF language decided at export (likely Korean for NHN judges)
 
 ## Open risks
 
-- **Model accuracy/UX** — mitigations above; decision point end of M1
 - Quick Draw dataset license (CC BY 4.0) + TF.js (Apache-2.0): verify and log in ASSETS.md the moment they enter the repo
 - Git repo inside Google Drive-synced folder: works, but if sync/git conflicts appear, fallback = user clones from GitHub to local path
 - Commit author email must be registered on the Sunjae-L22 GitHub account or commits won't link to profile
