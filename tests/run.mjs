@@ -1,5 +1,5 @@
 // Lightweight test runner for game logic. Usage: node tests/run.mjs
-import { createGame, startGame, update, TUNE, FIELD, damageMonster } from '../src/game.js';
+import { createGame, startGame, update, TUNE, FIELD, damageMonster, pickDraft } from '../src/game.js';
 import { SPELLS, castByIndex } from '../src/spells.js';
 
 let pass = 0, fail = 0;
@@ -12,6 +12,7 @@ function ok(v, msg = '') { if (!v) throw new Error(`${msg} (falsy)`); }
 function run(g, seconds, step = 1 / 60) { for (let i = 0; i < seconds / step; i++) update(g, step); }
 function fresh() { const g = createGame({ seed: 7 }); g.state = 'playing'; return g; }
 function calm(g) { g.waveTimer = 1e9; return g; } // freeze wave spawning for isolated tests
+function allUnlocked(g) { for (let i = 0; i < TUNE.numSpells; i++) g.unlocked.add(i); return g; }
 const IDX = Object.fromEntries(SPELLS.map((s, i) => [s.key, i]));
 
 t('title state does not simulate', () => {
@@ -55,7 +56,7 @@ t('sword fizzles with no target (no cast counted)', () => {
 });
 
 t('lightning chains up to 4', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   for (let i = 0; i < 5; i++) g.monsters.push({ id: 100 + i, x: 300 + i * 30, y: 200, hp: 10, maxHp: 10, speed: 0, dps: 0, radius: 16 });
   castByIndex(g, IDX.lightning, 1.0);
   update(g, 1 / 60);
@@ -63,7 +64,7 @@ t('lightning chains up to 4', () => {
 });
 
 t('shield absorbs gate damage', () => {
-  const g = fresh();
+  const g = allUnlocked(fresh());
   g.monsters.push({ id: 900, x: 10, y: 200, hp: 1000, maxHp: 1000, speed: 50, dps: 10, radius: 16 });
   castByIndex(g, IDX.circle, 1.0); // shield 82.5
   run(g, 3);
@@ -72,14 +73,14 @@ t('shield absorbs gate damage', () => {
 });
 
 t('shield expires after TTL', () => {
-  const g = fresh();
+  const g = allUnlocked(fresh());
   castByIndex(g, IDX.circle, 1.0);
   run(g, 8.5);
   eq(g.shield, 0);
 });
 
 t('wall blocks monster movement', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   g.monsters.push({ id: 901, x: 400, y: 260, hp: 100, maxHp: 100, speed: 60, dps: 5, radius: 16 });
   castByIndex(g, IDX.square, 1.0); // wall at x=310
   run(g, 3);
@@ -89,7 +90,7 @@ t('wall blocks monster movement', () => {
 });
 
 t('fire zone burns monsters passing the gate area', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   g.monsters.push({ id: 902, x: 150, y: FIELD.H / 2, hp: 60, maxHp: 60, speed: 0, dps: 0, radius: 16 });
   castByIndex(g, IDX.campfire, 1.0); // 21 dps
   run(g, 2);
@@ -98,7 +99,7 @@ t('fire zone burns monsters passing the gate area', () => {
 });
 
 t('poison cloud slows', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   g.monsters.push({ id: 903, x: 500, y: 250, hp: 1000, maxHp: 1000, speed: 100, dps: 0, radius: 16 });
   castByIndex(g, IDX.cloud, 1.0); // slow 0.55 at monster position
   const x0 = 500;
@@ -109,7 +110,7 @@ t('poison cloud slows', () => {
 });
 
 t('spike trap hits limited number', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   for (let i = 0; i < 4; i++) g.monsters.push({ id: 910 + i, x: 400, y: 250, hp: 100, maxHp: 100, speed: 50, dps: 0, radius: 16 });
   castByIndex(g, IDX.triangle, 1.0); // trap ahead of frontmost, 3 hits of 45
   run(g, 4);
@@ -118,7 +119,7 @@ t('spike trap hits limited number', () => {
 });
 
 t('star blast damages cluster only', () => {
-  const g = calm(fresh());
+  const g = allUnlocked(calm(fresh()));
   for (let i = 0; i < 3; i++) g.monsters.push({ id: 920 + i, x: 400 + i * 20, y: 250, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
   g.monsters.push({ id: 930, x: 700, y: 60, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
   castByIndex(g, IDX.star, 1.0);
@@ -133,6 +134,7 @@ t('surviving all waves → win', () => {
   // cheat: massive repeated blasts
   for (let i = 0; i < 60 * 60 * 8; i++) {
     update(g, 1 / 60);
+    if (g.pendingDraft) pickDraft(g, g.pendingDraft[0]);
     if (g.monsters.length) for (const m of [...g.monsters]) damageMonster(g, m, 1000);
     if (g.state === 'win') break;
   }
@@ -141,13 +143,57 @@ t('surviving all waves → win', () => {
 });
 
 t('confidence scales damage', () => {
-  const g1 = fresh(), g2 = fresh();
+  const g1 = allUnlocked(fresh()), g2 = allUnlocked(fresh());
   for (const [g, conf] of [[g1, 1.0], [g2, 0.0]]) {
     g.monsters.push({ id: 940, x: 300, y: 200, hp: 1000, maxHp: 1000, speed: 0, dps: 0, radius: 16 });
     castByIndex(g, IDX.sword, conf);
   }
   const d1 = 1000 - g1.monsters[0].hp, d2 = 1000 - g2.monsters[0].hp;
   ok(Math.abs(d1 / d2 - 3) < 0.01, `1.0-conf does 3x of 0.0-conf (${d1}/${d2})`);
+});
+
+t('locked spell cannot cast', () => {
+  const g = calm(fresh());
+  g.monsters.push({ id: 950, x: 300, y: 200, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
+  eq(castByIndex(g, IDX.circle, 1.0), false, 'circle locked at start');
+  eq(g.shield, 0);
+  ok(castByIndex(g, IDX.sword, 1.0), 'sword is a starter');
+});
+
+t('starters are sword + lightning only', () => {
+  const g = fresh();
+  eq(g.unlocked.size, 2);
+  ok(g.unlocked.has(IDX.sword) && g.unlocked.has(IDX.lightning));
+});
+
+t('wave clear opens a 3-option draft of locked spells, sim pauses', () => {
+  const g = fresh();
+  run(g, 1.3 + TUNE.waveCount(1) * TUNE.spawnInterval + 0.2);
+  for (const m of [...g.monsters]) damageMonster(g, m, 9999);
+  run(g, 0.1);
+  ok(g.pendingDraft, 'draft pending after wave clear');
+  eq(g.pendingDraft.length, 3);
+  eq(new Set(g.pendingDraft).size, 3, 'no duplicate options');
+  for (const i of g.pendingDraft) ok(!g.unlocked.has(i), 'options are locked spells');
+  const wave = g.wave, t0 = g.time;
+  run(g, 2);
+  eq(g.wave, wave, 'wave frozen during draft');
+  eq(g.time, t0, 'time frozen during draft');
+  const choice = g.pendingDraft[1];
+  eq(pickDraft(g, 999), false, 'invalid pick rejected');
+  ok(pickDraft(g, choice), 'valid pick');
+  ok(g.unlocked.has(choice));
+  eq(g.pendingDraft, null);
+  run(g, 3);
+  eq(g.wave, wave + 1, 'resumes to next wave');
+});
+
+t('no draft when everything is unlocked', () => {
+  const g = allUnlocked(fresh());
+  run(g, 1.3 + TUNE.waveCount(1) * TUNE.spawnInterval + 0.2);
+  for (const m of [...g.monsters]) damageMonster(g, m, 9999);
+  run(g, 0.5);
+  eq(g.pendingDraft, null);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -114,7 +114,7 @@ export const SPELLS = [
 // classIdx must match model.classes order. Returns false if the cast fizzled (no target).
 export function castByIndex(g, classIdx, confidence) {
   const spell = SPELLS[classIdx];
-  if (!spell || g.state !== 'playing') return false;
+  if (!spell || g.state !== 'playing' || !g.unlocked.has(classIdx)) return false;
   const p = 0.5 + confidence;
   const ok = spell.cast(g, p);
   if (ok) { g.casts += 1; emit(g, 'cast', { key: spell.key, confidence }); }

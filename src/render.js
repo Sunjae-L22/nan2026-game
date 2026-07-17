@@ -144,11 +144,11 @@ export function render(ctx, g, fx, w, h, time) {
   ctx.fillText(`SCORE ${g.score}`, 160, 30);
   // gate HP bar
   ctx.font = '13px system-ui';
-  ctx.fillText('GATE', 44, 52);
-  hpBar(ctx, 44 + 130, 48, 250, g.gateHP / TUNE.gateHP, g.gateHP < 30 ? '#ff6b6b' : '#9bf6a3');
+  ctx.fillText('GATE', 44, 53);
+  hpBar(ctx, 90 + 125, 48, 250, g.gateHP / TUNE.gateHP, g.gateHP < 30 ? '#ff6b6b' : '#9bf6a3');
   if (g.shield > 0) {
     ctx.fillStyle = '#4cc9f0';
-    ctx.fillText(`SHIELD ${Math.ceil(g.shield)}`, 310, 52);
+    ctx.fillText(`SHIELD ${Math.ceil(g.shield)}`, 352, 53);
   }
 
   if (fx.flash) {

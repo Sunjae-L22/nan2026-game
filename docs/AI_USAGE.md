@@ -36,3 +36,10 @@ Trained offline on Google Quick, Draw! stroke data rasterized by the *same* `pre
 - **Model:** conv3x3x16/pool/conv3x3x32/pool/dense96/dense8, ~83k params, 440KB JSON, ~0.6ms/prediction in browser
 - **Classes (8):** lightning, circle, triangle, star, cloud, sword, square, campfire — selected from 12 candidates by cross-class confusion analysis (dropped moon: 82% acc, confused with circle)
 - **Verification:** E2E gate on 4,800 held-out raw drawings run through the full game pipeline: **96.60% accuracy** (per-class 93.7–98.5%). Val accuracy 96.5%.
+
+### 2026-07-17 — M3 (part 1): playtest-driven redesign of the casting loop
+- **Tool:** Claude (Cowork mode)
+- **Trigger:** Participant playtest feedback — (1) multi-stroke shapes (e.g. campfire) were impossible to cast under the auto-cast timer; (2) all-spells-from-start felt flat.
+- **Prompt (near-verbatim):** "캠프파이어는 한 획으로 그릴 수 없어 발동이 어렵다 — 다 그리고 엔터로 발동하게. 그리고 웨이브 클리어마다 스킬 카드를 골라 하나씩 해금되게 하자."
+- **Produced:** Explicit casting (Enter/Space/CAST button, Backspace undo) replacing auto-cast; roguelite card draft — start with 2 spells, +1 pick per wave clear from 3 random locked options (sim pauses during pick). 4 new logic tests (20 total green).
+- **Integration:** committed after live verification on Pages.

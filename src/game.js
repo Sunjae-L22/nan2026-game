@@ -16,6 +16,9 @@ export const TUNE = {
   }),
   waveCount: (wave) => 3 + 2 * wave,
   scoreKill: 10,
+  numSpells: 8,
+  startSpells: [5, 0],        // sword, lightning (classes order: lightning,circle,triangle,star,cloud,sword,square,campfire)
+  draftSize: 3,
 };
 
 let nextId = 1;
@@ -36,6 +39,8 @@ export function createGame(opts = {}) {
     shieldTTL: 0,
     gateHP: TUNE.gateHP,
     score: 0,
+    unlocked: new Set(opts.unlocked ?? TUNE.startSpells),
+    pendingDraft: null,       // [classIdx, ...] while player chooses; sim paused
     kills: 0,
     casts: 0,
     events: [],               // drained by renderer for fx/sound
@@ -60,7 +65,7 @@ function mulberry32(a) {
 export function emit(g, type, data = {}) { g.events.push({ type, ...data }); }
 
 export function update(g, dt) {
-  if (g.state !== 'playing') return;
+  if (g.state !== 'playing' || g.pendingDraft) return;
   g.time += dt;
 
   // Wave sequencing
@@ -88,6 +93,7 @@ export function update(g, dt) {
       g.waveTimer = TUNE.wavePause;
       g.score += 25;                        // wave clear bonus
       emit(g, 'waveClear', { wave: g.wave });
+      maybeStartDraft(g);
     }
   }
 
@@ -176,6 +182,27 @@ export function damageMonster(g, m, dmg, quiet = false) {
     g.score += TUNE.scoreKill * g.wave;
     emit(g, 'kill', { x: m.x, y: m.y, id: m.id });
   }
+}
+
+function maybeStartDraft(g) {
+  if (g.wave >= TUNE.waves) return;                 // no draft after the final wave
+  const locked = [];
+  for (let i = 0; i < TUNE.numSpells; i++) if (!g.unlocked.has(i)) locked.push(i);
+  if (locked.length === 0) return;
+  for (let i = locked.length - 1; i > 0; i--) {     // rng shuffle
+    const j = Math.floor(g.rng() * (i + 1));
+    [locked[i], locked[j]] = [locked[j], locked[i]];
+  }
+  g.pendingDraft = locked.slice(0, TUNE.draftSize);
+  emit(g, 'draft', { options: [...g.pendingDraft] });
+}
+
+export function pickDraft(g, classIdx) {
+  if (!g.pendingDraft || !g.pendingDraft.includes(classIdx)) return false;
+  g.unlocked.add(classIdx);
+  g.pendingDraft = null;
+  emit(g, 'unlock', { classIdx });
+  return true;
 }
 
 // Helpers for spell targeting

@@ -25,9 +25,13 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. M3: balance pass from real playtests (collect user feel: difficulty curve, spell usefulness)
-2. M3: juice — sound (WebAudio synth), better kill fx, wave banners, combo/score pops, monster variety
-3. M3: mobile layout polish + title screen art; then M4 video/docs
+1. M3 pt2: sound (WebAudio synth), kill fx upgrade, wave banners, monster variety
+2. M3 pt2: rebalance around draft system (early waves w/ 2 spells), mobile layout pass
+3. M4: title art, video shot list, PDFs
+
+## M3 part 1 (2026-07-17) — from participant playtest feedback
+- Casting is now explicit: Enter/Space/CAST button; Backspace undoes a stroke. (Auto-cast removed — it broke multi-stroke shapes like campfire.)
+- Skill draft: start with sword+lightning; each wave clear → pick 1 of 3 random locked spells; legend shows locks; sim pauses during pick. Tests: 20 green.
 
 ## M2 verification (2026-07-17, live on Pages)
 

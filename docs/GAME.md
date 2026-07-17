@@ -14,13 +14,17 @@ What you draw is what you wield — sketch shapes and an on-device AI recognizes
 ## How to play  <!-- all three subsections are REQUIRED by submission -->
 
 ### Goal
-Survive incoming monster waves by casting spells: draw the right shape, fast and clean — recognition confidence scales spell power. _(refine as loop solidifies)_
+Defend the gate against 10 waves of doodle monsters. Draw spell shapes on the pad — the on-device AI recognizes them and casts the matching spell. Cleaner drawings = higher confidence = more power. Clearing a wave lets you pick 1 new spell card (start: 참격/sword + 체인 라이트닝/lightning, grow to all 8).
 
 ### Controls
-Mouse drag / touch drag to draw on the spell canvas. _(exact bindings TBD in M2)_
+- Draw: mouse drag / touch drag on the right-side pad (multi-stroke shapes fine)
+- Cast: **Enter** or **Space** or the **CAST** button
+- Undo last stroke: **Backspace** · Clear pad: **Clear** button
+- Pick a spell card: click, or keys **1/2/3** · Restart after game end: **R**
 
 ### End conditions (win / lose)
-Lose when monsters breach your gate (HP reaches 0). Score = waves survived + casting accuracy. _(win condition — final wave vs endless — decided in M2)_
+- **Win:** survive all 10 waves (VICTORY screen with score/kills/casts)
+- **Lose:** gate HP reaches 0 (GAME OVER screen), instant restart with R
 
 ## How to run
 
