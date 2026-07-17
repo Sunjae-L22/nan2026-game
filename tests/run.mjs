@@ -196,5 +196,42 @@ t('no draft when everything is unlocked', () => {
   eq(g.pendingDraft, null);
 });
 
+t('star blast honors aim target', () => {
+  const g = allUnlocked(calm(fresh()));
+  g.monsters.push({ id: 960, x: 600, y: 100, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
+  g.monsters.push({ id: 961, x: 200, y: 400, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
+  castByIndex(g, IDX.star, 1.0, { x: 610, y: 110 });
+  ok(g.monsters.find(m => m.id === 960).hp < 100, 'aimed monster hit');
+  eq(g.monsters.find(m => m.id === 961).hp, 100, 'far monster untouched');
+});
+
+t('sword hits monster nearest to aim, not frontmost', () => {
+  const g = allUnlocked(calm(fresh()));
+  g.monsters.push({ id: 962, x: 100, y: 250, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 }); // frontmost
+  g.monsters.push({ id: 963, x: 700, y: 250, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 }); // aimed
+  castByIndex(g, IDX.sword, 1.0, { x: 690, y: 240 });
+  eq(g.monsters.find(m => m.id === 962).hp, 100, 'frontmost untouched');
+  ok(g.monsters.find(m => m.id === 963).hp < 100, 'aimed hit');
+});
+
+t('wall and campfire placed at aim (clamped)', () => {
+  const g = allUnlocked(calm(fresh()));
+  castByIndex(g, IDX.square, 1.0, { x: 500, y: 250 });
+  eq(g.walls[0].x, 500);
+  castByIndex(g, IDX.square, 1.0, { x: 99999, y: 250 });
+  eq(g.walls[1].x, FIELD.W - 80, 'clamped to field');
+  castByIndex(g, IDX.campfire, 1.0, { x: 640, y: 300 });
+  const z = g.zones.find(z => z.kind === 'fire');
+  eq(z.x, 640); eq(z.y, 300);
+});
+
+t('no aim → legacy auto-target (sword frontmost)', () => {
+  const g = allUnlocked(calm(fresh()));
+  g.monsters.push({ id: 964, x: 100, y: 250, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
+  g.monsters.push({ id: 965, x: 700, y: 250, hp: 100, maxHp: 100, speed: 0, dps: 0, radius: 16 });
+  castByIndex(g, IDX.sword, 1.0);
+  ok(g.monsters.find(m => m.id === 964).hp < 100, 'frontmost hit');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

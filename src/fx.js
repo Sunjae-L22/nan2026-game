@@ -46,7 +46,7 @@ export function handleEvents(fx, g, events) {
       case 'fx_slash': burst(fx, e.x, e.y, '#e8ecf1', 14, 190); fx.shake = Math.max(fx.shake, 5); break;
       case 'fx_shield': fx.rings.push({ x: 30, y: 260, r: 30, vr: 160, color: '#4cc9f0', ttl: 0.4 }); break;
       case 'fx_cloud': fx.rings.push({ x: e.x, y: e.y, r: 40, vr: 120, color: '#b47cff', ttl: 0.4 }); break;
-      case 'fx_fire': fx.rings.push({ x: 110, y: 260, r: 40, vr: 150, color: '#ff6b6b', ttl: 0.4 }); break;
+      case 'fx_fire': fx.rings.push({ x: e.x ?? 110, y: e.y ?? 260, r: 40, vr: 150, color: '#ff6b6b', ttl: 0.4 }); break;
       case 'fx_wall': burst(fx, e.x + 13, 260, '#c9a97c', 20, 160); break;
       case 'fx_spike': burst(fx, e.x, e.y, '#9bf6a3', 10, 120); break;
       case 'wave': fx.flash = { color: 'rgba(255,255,255,0.08)', ttl: 0.3 }; break;

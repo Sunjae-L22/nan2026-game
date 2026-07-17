@@ -1,7 +1,7 @@
 // main.js — bootstrap: model load, UI wiring, game loop, draft overlay.
-import { createGame, startGame, update, TUNE, pickDraft } from './game.js';
+import { createGame, startGame, update, TUNE, pickDraft, FIELD } from './game.js';
 import { SPELLS, castByIndex } from './spells.js';
-import { render, drawGlyph } from './render.js';
+import { render, drawGlyph, fieldTransform } from './render.js';
 import { createFx, fxUpdate, handleEvents, floatText } from './fx.js';
 import { loadModel } from './nn.js';
 import { createPad } from './drawpad.js';
@@ -68,12 +68,29 @@ function updateBars(pad) {
 const pad = createPad(padCanvas, model, updateBars);
 document.getElementById('clear').onclick = () => pad.clear();
 
+// ---------- aiming (mouse hover / tap on the battlefield) ----------
+let aimScreen = null;
+gameCanvas.addEventListener('pointermove', (e) => { aimScreen = [e.offsetX, e.offsetY]; });
+gameCanvas.addEventListener('pointerdown', (e) => { aimScreen = [e.offsetX, e.offsetY]; });
+function aimField() {
+  if (!aimScreen) return null;
+  const { scale, offX, offY } = fieldTransform(gameCanvas.width, gameCanvas.height);
+  const x = (aimScreen[0] - offX) / scale, y = (aimScreen[1] - offY) / scale;
+  if (x < -40 || x > FIELD.W + 40 || y < -40 || y > FIELD.H + 40) return null;
+  return { x: Math.max(0, Math.min(FIELD.W, x)), y: Math.max(0, Math.min(FIELD.H, y)) };
+}
+function bestUnlocked() {
+  if (!pad.probs) return { idx: -1, p: 0 };
+  let idx = -1, p = 0;
+  for (const i of g.unlocked) if (pad.probs[i] > p) { p = pad.probs[i]; idx = i; }
+  return { idx, p };
+}
+
 // ---------- explicit cast ----------
 function doCast() {
   if (g.state !== 'playing' || g.pendingDraft || !pad.probs) return;
-  let best = -1, bp = 0;
-  for (const i of g.unlocked) if (pad.probs[i] > bp) { bp = pad.probs[i]; best = i; }
-  const ok = best >= 0 && bp >= CAST_MIN && castByIndex(g, best, bp);
+  const { idx: best, p: bp } = bestUnlocked();
+  const ok = best >= 0 && bp >= CAST_MIN && castByIndex(g, best, bp, aimField());
   if (ok) {
     padCanvas.classList.remove('castflash'); void padCanvas.offsetWidth;
     padCanvas.style.setProperty('--castcolor', SPELLS[best].color);
@@ -93,11 +110,12 @@ function hideOverlay() { overlay.style.display = 'none'; }
 function showTitle() {
   showOverlay(`<h1>Scribble Summoner</h1>
     <p>몰려오는 낙서 몬스터에게서 <b>성문을 지켜라!</b><br>
-    패드에 도형을 그리고 <b>Enter</b> 또는 <b>CAST</b>로 발동 — AI가 낙서를 알아본다.<br>
+    패드에 도형을 그리고 <b>Shift</b>로 발동 — AI가 낙서를 알아본다.<br>
+    발동 전에 <b>전장에 마우스를 올려두면 그 위치에 시전!</b><br>
     또렷하게 그릴수록 강력하다. 웨이브를 클리어하면 <b>새 마법 카드</b>를 얻는다.<br>
     <b>10웨이브를 버티면 승리.</b></p>
     <button id="startBtn">START — 그릴 준비 됐어?</button>
-    <p class="small">참격·체인 라이트닝으로 시작 / Backspace: 한 획 취소 / R: 재시작</p>`);
+    <p class="small">참격·체인 라이트닝으로 시작 / 좌·우 Shift 모두 OK (Enter도 가능) / Backspace: 한 획 취소 / R: 재시작</p>`);
   document.getElementById('startBtn').onclick = begin;
 }
 function begin() {
@@ -144,7 +162,8 @@ function pickCard(ci) {
 
 // ---------- keys ----------
 addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCast(); }
+  if (e.key === 'Shift' && !e.repeat) { e.preventDefault(); doCast(); }   // L/R Shift both — either hand
+  if (e.key === 'Enter') { e.preventDefault(); doCast(); }
   if (e.key === 'Backspace') { e.preventDefault(); pad.undo(); }
   if ((e.key === 'r' || e.key === 'R') && g.state !== 'playing') begin();
   if (g.pendingDraft && ['1', '2', '3'].includes(e.key)) {
@@ -175,7 +194,10 @@ function tick(now) {
   handleEvents(fx, g, g.events);
   g.events.length = 0;
   fxUpdate(fx, dt);
-  render(gctx, g, fx, gameCanvas.width, gameCanvas.height, now / 1000);
+  const b = bestUnlocked();
+  const aim = b.idx >= 0 ? aimField() : null;
+  render(gctx, g, fx, gameCanvas.width, gameCanvas.height, now / 1000,
+    aim ? { x: aim.x, y: aim.y, spellIdx: b.idx } : null);
   if (g.pendingDraft && !draftShown) { draftShown = true; setTimeout(showDraft, 450); }
   if (g.state === 'win' && !ended) { ended = true; setTimeout(() => showEnd(true), 600); }
   else if (g.state === 'lose' && !ended) { ended = true; setTimeout(() => showEnd(false), 600); }
@@ -184,4 +206,4 @@ function tick(now) {
 }
 showTitle();
 requestAnimationFrame(tick);
-console.log('[game] Scribble Summoner M3 boot OK');
+console.log('[game] Scribble Summoner M3.2 boot OK');

@@ -43,3 +43,8 @@ Trained offline on Google Quick, Draw! stroke data rasterized by the *same* `pre
 - **Prompt (near-verbatim):** "캠프파이어는 한 획으로 그릴 수 없어 발동이 어렵다 — 다 그리고 엔터로 발동하게. 그리고 웨이브 클리어마다 스킬 카드를 골라 하나씩 해금되게 하자."
 - **Produced:** Explicit casting (Enter/Space/CAST button, Backspace undo) replacing auto-cast; roguelite card draft — start with 2 spells, +1 pick per wave clear from 3 random locked options (sim pauses during pick). 4 new logic tests (20 total green).
 - **Integration:** committed after live verification on Pages.
+
+### 2026-07-17 — M3 (part 2): aimed casting + ergonomic cast key (playtest feedback round 2)
+- **Tool:** Claude (Cowork mode)
+- **Prompt (near-verbatim):** "시전 위치가 자동인 게 아쉽다 — 마우스를 가져다 댄 곳에 시전되게. 그리고 Enter 대신 좌우 Shift로 시전(왼손/오른손 모두 편하게)."
+- **Produced:** every spell accepts an optional aim point (mouse hover / tap on battlefield, clamped; per-spell ghost reticle shows AoE while aiming); auto-targeting kept as fallback so keyboard-less/mobile play still works. Cast key: L/R Shift (Enter secondary). +4 tests (24 green).

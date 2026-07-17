@@ -18,7 +18,8 @@ Defend the gate against 10 waves of doodle monsters. Draw spell shapes on the pa
 
 ### Controls
 - Draw: mouse drag / touch drag on the right-side pad (multi-stroke shapes fine)
-- Cast: **Enter** or **Space** or the **CAST** button
+- Cast: **Shift** (left or right — either hand) or **Enter** or the **CAST** button
+- **Aim:** hover the battlefield with the mouse (or tap it on touch) before casting — the spell lands there; a dashed ghost shows the area of effect. No aim → smart auto-targeting
 - Undo last stroke: **Backspace** · Clear pad: **Clear** button
 - Pick a spell card: click, or keys **1/2/3** · Restart after game end: **R**
 

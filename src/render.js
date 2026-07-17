@@ -4,10 +4,17 @@ import { SPELLS } from './spells.js';
 
 const ZCOLOR = { spike: '#9bf6a3', poison: '#b47cff', fire: '#ff6b6b' };
 
-export function render(ctx, g, fx, w, h, time) {
-  ctx.clearRect(0, 0, w, h);
+export function fieldTransform(w, h) {
   const scale = Math.min(w / FIELD.W, h / FIELD.H);
-  const offX = (w - FIELD.W * scale) / 2, offY = (h - FIELD.H * scale) / 2;
+  return { scale, offX: (w - FIELD.W * scale) / 2, offY: (h - FIELD.H * scale) / 2 };
+}
+
+// Ghost radius/shape shown while aiming, per spell key
+const AIM_R = { star: 120, cloud: 95, campfire: 110, triangle: 46 };
+
+export function render(ctx, g, fx, w, h, time, aim) {
+  ctx.clearRect(0, 0, w, h);
+  const { scale, offX, offY } = fieldTransform(w, h);
   ctx.save();
   const sx = (Math.random() - 0.5) * fx.shake, sy = (Math.random() - 0.5) * fx.shake;
   ctx.translate(offX + sx, offY + sy);
@@ -149,6 +156,32 @@ export function render(ctx, g, fx, w, h, time) {
   if (g.shield > 0) {
     ctx.fillStyle = '#4cc9f0';
     ctx.fillText(`SHIELD ${Math.ceil(g.shield)}`, 352, 53);
+  }
+
+  // aim reticle (while a drawing is pending)
+  if (aim && aim.spellIdx >= 0 && g.state === 'playing') {
+    const sp = SPELLS[aim.spellIdx];
+    const pulse = 0.55 + 0.25 * Math.sin(time * 6);
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = sp.color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 8]);
+    if (sp.key === 'square') {
+      ctx.strokeRect(aim.x - 13, 40, 26, FIELD.H - 80);
+    } else if (AIM_R[sp.key]) {
+      ctx.beginPath();
+      ctx.arc(aim.x, aim.y, AIM_R[sp.key], 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    if (sp.key !== 'circle') {
+      ctx.beginPath(); ctx.arc(aim.x, aim.y, 6, 0, Math.PI * 2); ctx.stroke();
+      line(ctx, aim.x - 16, aim.y, aim.x - 8, aim.y);
+      line(ctx, aim.x + 8, aim.y, aim.x + 16, aim.y);
+      line(ctx, aim.x, aim.y - 16, aim.x, aim.y - 8);
+      line(ctx, aim.x, aim.y + 8, aim.x, aim.y + 16);
+    }
+    ctx.globalAlpha = 1;
   }
 
   if (fx.flash) {

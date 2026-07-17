@@ -25,9 +25,14 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. M3 pt2: sound (WebAudio synth), kill fx upgrade, wave banners, monster variety
-2. M3 pt2: rebalance around draft system (early waves w/ 2 spells), mobile layout pass
+1. M3 pt3: sound (WebAudio synth), kill fx upgrade, wave banners, monster variety
+2. M3 pt3: mobile layout pass (aim = tap already works); balance check at high waves
 3. M4: title art, video shot list, PDFs
+
+## M3 part 2 (2026-07-17) — playtest feedback round 2
+- Aimed casting: hover/tap battlefield → spell lands there (dashed AoE ghost per spell); no aim → legacy auto-target. All spells take optional target, clamped to field. Tests 24 green.
+- Cast key: L/R Shift (both hands OK, user request), Enter kept as secondary, CAST button for touch.
+- Backlog (user, acknowledged): expand the card pool well beyond 8 (upgrades/modifiers) — post-M4 if time allows. Early-wave difficulty confirmed OK by participant.
 
 ## M3 part 1 (2026-07-17) — from participant playtest feedback
 - Casting is now explicit: Enter/Space/CAST button; Backspace undoes a stroke. (Auto-cast removed — it broke multi-stroke shapes like campfire.)
