@@ -20,14 +20,14 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 ## Current status
 
 - Live on GitHub Pages (verified in Chrome: 120 FPS, zero console errors)
-- **M1 COMPLETE — recognition gate passed.** 8-class model, E2E 96.60% on 4,800 held-out drawings through the exact game pipeline (gate was 90%). Val 96.5%, all classes ≥93%. Inference 0.6ms, model 440KB, zero runtime dependencies.
+- **M1 COMPLETE & LIVE-VERIFIED** (drew triangle/square/lightning in deployed lab.html via real browser: each recognized at 100.0%, no console errors). 8-class model, E2E 96.60% on 4,800 held-out drawings through the exact game pipeline (gate was 90%). Val 96.5%, all classes ≥93%. Inference 0.6ms, model 440KB, zero runtime dependencies.
 - Final classes & spell mapping (draft): lightning=chain bolt, circle=shield, triangle=spike trap, star=big blast, cloud=poison cloud, sword=slash, square=stone wall, campfire=fire zone
 
 ## Next 3 steps
 
-1. User: `git push` → Claude verifies dev/lab.html live on Pages (draw & recognize in real browser)
-2. M2 start: game shell (wave spawner, gate HP, spell casting from recognition, win/lose/restart)
-3. M2: spell effects v1 + balance pass → playable-ugly full loop
+1. M2 start: game shell (wave spawner, gate HP, spell casting from recognition, win/lose/restart)
+2. M2: spell effects v1 + balance pass → playable-ugly full loop
+3. M3: juice + mobile touch + balance
 
 ## Milestones (each ends playable)
 
