@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1, M2 complete & live-verified)_
+_Last updated: 2026-07-17 (session 1, M3 part 1 live-verified)_
 
 ## Facts
 
@@ -32,6 +32,7 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 ## M3 part 1 (2026-07-17) — from participant playtest feedback
 - Casting is now explicit: Enter/Space/CAST button; Backspace undoes a stroke. (Auto-cast removed — it broke multi-stroke shapes like campfire.)
 - Skill draft: start with sword+lightning; each wave clear → pick 1 of 3 random locked spells; legend shows locks; sim pauses during pick. Tests: 20 green.
+- LIVE-VERIFIED on Pages: Enter-cast consumed a drawn lightning (89%) → chain kill + score; two draft picks made in a real run (campfire, star) with legend unlocking correctly; bars mask locked classes; zero console errors. Participant playtested concurrently.
 
 ## M2 verification (2026-07-17, live on Pages)
 
