@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1, M3 part 1 live-verified)_
+_Last updated: 2026-07-17 (session 1 close — M3 part 2 user-verified)_
 
 ## Facts
 
@@ -28,6 +28,11 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 1. M3 pt3: sound (WebAudio synth), kill fx upgrade, wave banners, monster variety
 2. M3 pt3: mobile layout pass (aim = tap already works); balance check at high waves
 3. M4: title art, video shot list, PDFs
+
+## Session 1 close notes
+- M3.2 verified by participant on live Pages build: L/R Shift cast OK, aimed casting lands at hover point with reticle OK, auto-target fallback OK.
+- Automation note: browser suspends rAF for background tabs → game auto-pauses when tab hidden (fine for players; means Claude's extension can't fully test live gameplay unless the tab is foregrounded; bare Shift keypress also not deliverable via extension — hand such checks to the participant).
+- NEXT SESSION (M3 pt3): WebAudio synth sound (cast per-spell, hit, kill, wave start, win/lose), kill fx upgrade + hit-stop, wave start banner, monster visual variety (per-wave shapes/colors), high-wave balance check, mobile layout pass. Then M4: README screenshot/GIF, title art, video shot list, PDF export.
 
 ## M3 part 2 (2026-07-17) — playtest feedback round 2
 - Aimed casting: hover/tap battlefield → spell lands there (dashed AoE ghost per spell); no aim → legacy auto-target. All spells take optional target, clamped to field. Tests 24 green.
