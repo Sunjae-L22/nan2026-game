@@ -1,58 +1,131 @@
-// NAN 2026 — deploy smoke test.
-// Purpose: prove GitHub Pages serves index.html + /src correctly, input works,
-// and rendering hits 60 FPS. Replaced by real game code after concept lock.
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const fpsEl = document.getElementById('fps');
+// main.js — bootstrap: model load, UI wiring, game loop.
+import { createGame, startGame, update, TUNE } from './game.js';
+import { SPELLS, castByIndex } from './spells.js';
+import { render, drawGlyph } from './render.js';
+import { createFx, fxUpdate, handleEvents, floatText } from './fx.js';
+import { loadModel } from './nn.js';
+import { createPad } from './drawpad.js';
 
-  let W, H;
-  const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; };
-  addEventListener('resize', resize);
-  resize();
+const DEBUG = new URLSearchParams(location.search).has('debug');
 
-  const dots = Array.from({ length: 80 }, () => ({
-    x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160,
-    r: 2 + Math.random() * 3, hue: 190 + Math.random() * 80
-  }));
+const model = loadModel(await (await fetch('assets/model/model.json')).json());
+const g = createGame({ seed: Date.now() >>> 0 });
+const fx = createFx();
 
-  // Click/tap burst — verifies pointer input on desktop and mobile.
-  addEventListener('pointerdown', (e) => {
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2, s = 120 + Math.random() * 120;
-      dots.push({
-        x: e.clientX, y: e.clientY,
-        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
-        r: 2 + Math.random() * 2, hue: 20 + Math.random() * 40, ttl: 1.2
-      });
-    }
+// --- DOM ---
+const gameCanvas = document.getElementById('game');
+const gctx = gameCanvas.getContext('2d');
+const padCanvas = document.getElementById('pad');
+const overlay = document.getElementById('overlay');
+const barsEl = document.getElementById('bars');
+
+// legend
+const legend = document.getElementById('legend');
+for (const s of SPELLS) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 34;
+  drawGlyph(cv.getContext('2d'), s.key, 34);
+  const label = document.createElement('div');
+  label.innerHTML = `<b>${s.name}</b><span>${s.key}</span>`;
+  cell.append(cv, label);
+  legend.append(cell);
+}
+
+// top-3 bars
+const barRows = [];
+for (let i = 0; i < 3; i++) {
+  const bar = document.createElement('div'); bar.className = 'bar';
+  const fill = document.createElement('div'); fill.className = 'fill';
+  const label = document.createElement('div'); label.className = 'label';
+  bar.append(fill, label);
+  barsEl.append(bar);
+  barRows.push({ bar, fill, label });
+}
+function updateBars(pad) {
+  if (!pad.probs) { for (const r of barRows) { r.fill.style.width = '0%'; r.label.textContent = ''; } return; }
+  const order = [...pad.probs.keys()].sort((a, b) => pad.probs[b] - pad.probs[a]).slice(0, 3);
+  order.forEach((ci, i) => {
+    const r = barRows[i];
+    r.fill.style.width = (pad.probs[ci] * 100).toFixed(0) + '%';
+    r.fill.style.background = i === 0 ? SPELLS[ci].color : '#3a4166';
+    r.label.textContent = `${SPELLS[ci].name} ${(pad.probs[ci] * 100).toFixed(0)}%`;
   });
+}
 
-  let last = performance.now(), acc = 0, frames = 0;
-  const tick = (now) => {
-    const dt = Math.min((now - last) / 1000, 0.05);
-    last = now;
-    acc += dt; frames++;
-    if (acc >= 0.5) { fpsEl.textContent = `FPS: ${Math.round(frames / acc)}`; acc = 0; frames = 0; }
+const pad = createPad(padCanvas, model, (classIdx, conf) => {
+  const ok = castByIndex(g, classIdx, conf);
+  if (ok) {
+    padCanvas.classList.remove('castflash'); void padCanvas.offsetWidth;
+    padCanvas.style.setProperty('--castcolor', SPELLS[classIdx].color);
+    padCanvas.classList.add('castflash');
+  } else {
+    padCanvas.classList.remove('fizzle'); void padCanvas.offsetWidth;
+    padCanvas.classList.add('fizzle');
+  }
+  return ok;
+}, updateBars);
+document.getElementById('clear').onclick = () => pad.clear();
 
-    ctx.fillStyle = 'rgba(15, 18, 32, 0.35)';
-    ctx.fillRect(0, 0, W, H);
+// overlay / states
+function showOverlay(html) { overlay.innerHTML = html; overlay.style.display = 'flex'; }
+function hideOverlay() { overlay.style.display = 'none'; }
 
-    for (let i = dots.length - 1; i >= 0; i--) {
-      const d = dots[i];
-      d.x += d.vx * dt; d.y += d.vy * dt;
-      if (d.x < 0 || d.x > W) { d.vx *= -1; d.x = Math.max(0, Math.min(W, d.x)); }
-      if (d.y < 0 || d.y > H) { d.vy *= -1; d.y = Math.max(0, Math.min(H, d.y)); }
-      if (d.ttl !== undefined && (d.ttl -= dt) <= 0) { dots.splice(i, 1); continue; }
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `hsl(${d.hue} 90% 65%)`;
-      ctx.fill();
-    }
-    requestAnimationFrame(tick);
-  };
+function showTitle() {
+  showOverlay(`<h1>Scribble Summoner</h1>
+    <p>몰려오는 낙서 몬스터에게서 <b>성문을 지켜라!</b><br>
+    오른쪽 패드에 도형을 그리면 AI가 알아보고 마법이 발동된다.<br>
+    또렷하게 그릴수록 강력하다. <b>10웨이브를 버티면 승리.</b></p>
+    <button id="startBtn">START — 그릴 준비 됐어?</button>
+    <p class="small">데스크톱: 마우스 드로잉 / 모바일: 터치 드로잉</p>`);
+  document.getElementById('startBtn').onclick = begin;
+}
+function begin() {
+  startGame(g);
+  hideOverlay();
+  pad.clear();
+}
+function showEnd(win) {
+  const acc = g.casts > 0 ? Math.round(g.kills / g.casts * 100) : 0;
+  showOverlay(`<h1>${win ? 'VICTORY!' : 'GAME OVER'}</h1>
+    <p>SCORE <b>${g.score}</b> · 처치 ${g.kills} · 시전 ${g.casts}회</p>
+    <button id="startBtn">${win ? '한 번 더' : 'RESTART'} (R)</button>`);
+  document.getElementById('startBtn').onclick = begin;
+}
+
+addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') { if (g.state !== 'playing') begin(); }
+  if (!DEBUG) return;
+  if (e.key === 'k') for (const m of [...g.monsters]) m.hp = -1;
+  if (e.key === 'l') g.gateHP = 1;
+  if (e.key === 'w') { g.wave = TUNE.waves; g.monsters = []; g.toSpawn = 0; g.waveState = 'clearing'; }
+});
+
+// resize
+function fit() {
+  const r = gameCanvas.parentElement.getBoundingClientRect();
+  gameCanvas.width = Math.floor(r.width);
+  gameCanvas.height = Math.floor(r.height);
+}
+addEventListener('resize', fit);
+fit();
+
+// loop
+let last = performance.now(), ended = false;
+function tick(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  update(g, dt);
+  handleEvents(fx, g, g.events);
+  g.events.length = 0;
+  fxUpdate(fx, dt);
+  render(gctx, g, fx, gameCanvas.width, gameCanvas.height, now / 1000);
+  if (g.state === 'win' && !ended) { ended = true; setTimeout(() => showEnd(true), 600); }
+  else if (g.state === 'lose' && !ended) { ended = true; setTimeout(() => showEnd(false), 600); }
+  if (g.state === 'playing') ended = false;
   requestAnimationFrame(tick);
-
-  console.log('[smoke] NAN 2026 scaffold v0.1 — no errors expected');
-})();
+}
+showTitle();
+requestAnimationFrame(tick);
+console.log('[game] Scribble Summoner M2 boot OK');
