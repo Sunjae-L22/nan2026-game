@@ -216,7 +216,7 @@ export function damageMonster(g, m, dmg, quiet = false) {
     m.dead = true;
     g.kills += 1;
     g.score += TUNE.scoreKill * g.wave * (m.boss ? 10 : 1);
-    emit(g, m.boss ? 'bossKill' : 'kill', { x: m.x, y: m.y, id: m.id });
+    emit(g, m.boss ? 'bossKill' : 'kill', { x: m.x, y: m.y, id: m.id, r: m.radius, color: m.color, kind: m.kind });
   }
 }
 

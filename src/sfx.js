@@ -62,19 +62,32 @@ export function createSfx() {
     campfire:  () => { noise(0.1, 0.4, 1800, 2, 'bandpass'); noise(0.12, 0.35, 1200, 2, 'bandpass', 0.08); noise(0.14, 0.3, 900, 2, 'bandpass', 0.18); },
   };
 
+  let combo = 0, comboAt = 0;
+
   return {
     get muted() { return muted; },
     toggleMute() { muted = !muted; return muted; },
     resume() { ensure(); },
     cast(key) { ensure(); (CAST[key] || (() => {}))(); },
+    whoosh() { ensure(); noise(0.22, 0.3, 1400, 1.2, 'bandpass'); beep(300, 900, 0.22, 'sine', 0.12); },
+    perfect() { ensure(); [880, 1175, 1760].forEach((f, i) => beep(f, f, 0.14, 'sine', 0.35, i * 0.06)); },
     fizzle() { ensure(); beep(220, 90, 0.18, 'sawtooth', 0.3); },
     pick() { ensure(); beep(520, 780, 0.12, 'triangle', 0.45); },
     handle(events) {
       if (!ctx || muted) { if (events.some(e => e.type === 'cast')) ensure(); }
       for (const e of events) {
         switch (e.type) {
-          case 'cast': break; // handled via cast(key) from main for reliability
-          case 'kill': if (!throttled('kill', 45)) beep(300, 620, 0.09, 'square', 0.32); break;
+          case 'cast': break; // spell sound triggered by main at resolve
+          case 'perfect': break; // triggered by main (sfx.perfect)
+          case 'kill': {
+            const now = performance.now();
+            combo = now - comboAt < 900 ? combo + 1 : 1;
+            comboAt = now;
+            if (!throttled('kill', 45)) beep(300 + Math.min(combo, 8) * 55, 620 + Math.min(combo, 8) * 55, 0.09, 'square', 0.32);
+            if (combo === 3) [523, 659].forEach((f, i) => beep(f, f, 0.09, 'triangle', 0.4, i * 0.08));
+            if (combo >= 5 && !throttled('rampage', 900)) [523, 659, 784, 1046].forEach((f, i) => beep(f, f, 0.09, 'triangle', 0.42, i * 0.07));
+            break;
+          }
           case 'bossKill': beep(200, 800, 0.5, 'square', 0.5); noise(0.6, 0.6, 400, 1); break;
           case 'bossSpawn': beep(90, 60, 0.7, 'sawtooth', 0.6); noise(0.5, 0.4, 200, 1); break;
           case 'damage': if (!throttled('dmg', 70)) beep(240, 190, 0.035, 'triangle', 0.13); break;

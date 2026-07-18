@@ -118,11 +118,19 @@ export const SPELLS = [
 
 // classIdx must match model.classes order. target = optional {x,y} aim point.
 // Returns false if the cast fizzled (no target monster).
+export const PERFECT_CONF = 0.95;
+
 export function castByIndex(g, classIdx, confidence, target = null) {
   const spell = SPELLS[classIdx];
   if (!spell || g.state !== 'playing' || !g.unlocked.has(classIdx)) return false;
-  const p = (0.5 + confidence) * (1 + TUNE.spellGrowth * Math.max(0, g.wave - 1));
+  const perfect = confidence >= PERFECT_CONF;
+  let p = (0.5 + confidence) * (1 + TUNE.spellGrowth * Math.max(0, g.wave - 1));
+  if (perfect) p *= 1.25;                                  // clean drawing = crit
   const ok = spell.cast(g, p, target);
-  if (ok) { g.casts += 1; emit(g, 'cast', { key: spell.key, confidence }); }
+  if (ok) {
+    g.casts += 1;
+    emit(g, 'cast', { key: spell.key, confidence });
+    if (perfect) emit(g, 'perfect', { x: target?.x ?? FIELD.W * 0.45, y: target?.y ?? FIELD.H * 0.38 });
+  }
   return ok;
 }

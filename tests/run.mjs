@@ -86,7 +86,7 @@ t('wall blocks monster movement', () => {
   run(g, 3);
   const m = g.monsters.find((m) => m.id === 901);
   ok(m.x > 310, `monster stopped at wall (x=${m.x.toFixed(0)})`);
-  ok(g.walls.length === 1 && g.walls[0].hp < 120, 'wall being chewed');
+  ok(g.walls.length === 1 && g.walls[0].hp < g.walls[0].maxHp, 'wall being chewed');
 });
 
 t('fire zone burns monsters passing the gate area', () => {
@@ -144,12 +144,12 @@ t('surviving all waves → win', () => {
 
 t('confidence scales damage', () => {
   const g1 = allUnlocked(fresh()), g2 = allUnlocked(fresh());
-  for (const [g, conf] of [[g1, 1.0], [g2, 0.0]]) {
+  for (const [g, conf] of [[g1, 0.9], [g2, 0.0]]) {
     g.monsters.push({ id: 940, x: 300, y: 200, hp: 1000, maxHp: 1000, speed: 0, dps: 0, radius: 16 });
     castByIndex(g, IDX.sword, conf);
   }
   const d1 = 1000 - g1.monsters[0].hp, d2 = 1000 - g2.monsters[0].hp;
-  ok(Math.abs(d1 / d2 - 3) < 0.01, `1.0-conf does 3x of 0.0-conf (${d1}/${d2})`);
+  ok(Math.abs(d1 / d2 - 2.8) < 0.01, `0.9-conf does 2.8x of 0.0-conf (${d1}/${d2})`);
 });
 
 t('locked spell cannot cast', () => {
@@ -285,6 +285,19 @@ t('spell power grows with wave', () => {
   }
   const d1 = 10000 - g1.monsters[0].hp, d10 = 10000 - g10.monsters[0].hp;
   ok(d10 > d1 * 1.5, `wave10 sword much stronger (${d1} -> ${d10})`);
+});
+
+t('PERFECT (conf>=0.95) crits 1.25x', () => {
+  const gA = allUnlocked(calm(fresh())), gB = allUnlocked(calm(fresh()));
+  for (const [g, conf] of [[gA, 0.95], [gB, 0.94]]) {
+    g.monsters.push({ id: 980, x: 300, y: 200, hp: 100000, maxHp: 100000, speed: 0, dps: 0, radius: 16 });
+    castByIndex(g, IDX.sword, conf);
+  }
+  const dA = 100000 - gA.monsters[0].hp, dB = 100000 - gB.monsters[0].hp;
+  const ratio = dA / dB;
+  ok(ratio > 1.24 && ratio < 1.27, `crit ratio ~1.25 (got ${ratio.toFixed(3)})`);
+  ok(gA.events.some(e => e.type === 'perfect'), 'perfect event emitted');
+  ok(!gB.events.some(e => e.type === 'perfect'), 'no perfect below threshold');
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

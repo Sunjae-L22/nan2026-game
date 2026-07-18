@@ -1,11 +1,12 @@
 // main.js — bootstrap: model load, UI wiring, game loop, draft overlay.
-import { createGame, startGame, update, TUNE, pickDraft, FIELD } from './game.js';
-import { SPELLS, castByIndex } from './spells.js';
+import { createGame, startGame, update, TUNE, pickDraft, FIELD, frontmost, densestPoint } from './game.js';
+import { SPELLS, castByIndex, PERFECT_CONF } from './spells.js';
 import { render, drawGlyph, fieldTransform } from './render.js';
 import { createFx, fxUpdate, handleEvents, floatText } from './fx.js';
 import { loadModel } from './nn.js';
 import { createPad } from './drawpad.js';
 import { createSfx } from './sfx.js';
+import { createFlight } from './flight.js';
 
 const DEBUG = new URLSearchParams(location.search).has('debug');
 const CAST_MIN = 0.25;
@@ -14,6 +15,7 @@ const model = loadModel(await (await fetch('assets/model/model.json')).json());
 const g = createGame({ seed: Date.now() >>> 0 });
 const fx = createFx();
 const sfx = createSfx();
+const flight = createFlight();
 
 const gameCanvas = document.getElementById('game');
 const gctx = gameCanvas.getContext('2d');
@@ -88,22 +90,57 @@ function bestUnlocked() {
   return { idx, p };
 }
 
+// Where would this spell land if cast right now? (visual preview for the flight)
+function previewTarget(classIdx) {
+  const key = SPELLS[classIdx].key;
+  if (key === 'circle') return { x: 30, y: FIELD.H / 2 };
+  if (key === 'campfire') return { x: 110, y: FIELD.H / 2 };
+  if (key === 'sword' || key === 'lightning') {
+    const f = frontmost(g, 1)[0];
+    return f ? { x: f.x, y: f.y } : { x: FIELD.W * 0.5, y: FIELD.H * 0.5 };
+  }
+  return densestPoint(g);
+}
+
+function fieldToScreen(p) {
+  const r = gameCanvas.getBoundingClientRect();
+  const { scale, offX, offY } = fieldTransform(gameCanvas.width, gameCanvas.height);
+  return { x: r.left + offX + p.x * scale, y: r.top + offY + p.y * scale };
+}
+
 // ---------- explicit cast ----------
+const FLIGHT_TIME = 0.3;
+
 function doCast() {
   if (g.state !== 'playing' || g.pendingDraft || !pad.probs) return;
   const { idx: best, p: bp } = bestUnlocked();
-  const ok = best >= 0 && bp >= CAST_MIN && castByIndex(g, best, bp, aimField());
-  if (ok) {
-    sfx.cast(SPELLS[best].key);
-    padCanvas.classList.remove('castflash'); void padCanvas.offsetWidth;
-    padCanvas.style.setProperty('--castcolor', SPELLS[best].color);
-    padCanvas.classList.add('castflash');
-  } else {
+  const key = best >= 0 ? SPELLS[best].key : null;
+  const needsMonster = key === 'sword' || key === 'lightning';
+  if (best < 0 || bp < CAST_MIN || (needsMonster && g.monsters.length === 0)) {
     sfx.fizzle();
     padCanvas.classList.remove('fizzle'); void padCanvas.offsetWidth;
     padCanvas.classList.add('fizzle');
+    pad.clear();
+    return;
   }
+  const target = aimField();
+  const perfect = bp >= PERFECT_CONF;
+  // the sketch itself flies from the pad to where the spell will land
+  const strokesCopy = pad.strokes.map(([xs, ys]) => [xs.slice(), ys.slice()]);
+  flight.launch(strokesCopy, padCanvas.getBoundingClientRect(),
+    fieldToScreen(target ?? previewTarget(best)), SPELLS[best].color, FLIGHT_TIME, perfect);
+  sfx.whoosh();
+  padCanvas.classList.remove('castflash'); void padCanvas.offsetWidth;
+  padCanvas.style.setProperty('--castcolor', SPELLS[best].color);
+  padCanvas.classList.add('castflash');
   pad.clear();
+  setTimeout(() => {
+    const ok = castByIndex(g, best, bp, target);
+    if (ok) {
+      sfx.cast(key);
+      if (perfect) sfx.perfect();
+    }
+  }, FLIGHT_TIME * 1000);
 }
 castBtn.onclick = doCast;
 
@@ -206,6 +243,7 @@ function tick(now) {
   sfx.handle(g.events);
   g.events.length = 0;
   fxUpdate(fx, dt);
+  flight.update(dt);
   const b = bestUnlocked();
   const aim = b.idx >= 0 ? aimField() : null;
   render(gctx, g, fx, gameCanvas.width, gameCanvas.height, now / 1000,
