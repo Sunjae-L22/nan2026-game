@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-18 (session 2 — M3 complete, pending live verify)_
+_Last updated: 2026-07-18 (session 2 — M3 + video-juice set complete)_
 
 ## Facts
 
@@ -25,7 +25,7 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. User push → verify M3.3 (sound/hit-stop/banners/monster variety — participant checklist)
+1. User push → verify M3.3 + juice set (flight sketch, PERFECT, combos, un-draw deaths, boss entrance)
 2. CONTENT PHASE (user decision 2026-07-18): keep upgrading the game through late July — collect feature ideas & playtest feedback, iterate. M4 (video + PDFs + freeze) deliberately deferred to ~Aug 6-7, right before the Aug 9 deadline. Living docs stay current so M4 remains a half-day export job.
 3. Candidate upgrade pool (prioritize with user): expanded card pool (upgrades/modifiers — user request), more spells/classes (needs model retrain), combo system, endless mode post-win, leaderboard (local), title screen art, ko/en toggle
 

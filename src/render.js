@@ -17,8 +17,10 @@ export function render(ctx, g, fx, w, h, time, aim) {
   const { scale, offX, offY } = fieldTransform(w, h);
   ctx.save();
   const sx = (Math.random() - 0.5) * fx.shake, sy = (Math.random() - 0.5) * fx.shake;
-  ctx.translate(offX + sx, offY + sy);
-  ctx.scale(scale, scale);
+  const punch = 1 + 0.035 * Math.min(1, (fx.punch || 0) / 0.2);
+  const ps = scale * punch;
+  ctx.translate(offX + sx - FIELD.W * (ps - scale) / 2, offY + sy - FIELD.H * (ps - scale) / 2);
+  ctx.scale(ps, ps);
 
   // paper background
   ctx.fillStyle = '#171b2e';
@@ -145,10 +147,23 @@ export function render(ctx, g, fx, w, h, time, aim) {
     ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
+  ctx.lineCap = 'round';
   for (const p of fx.parts) {
-    ctx.fillStyle = p.color;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = 2.5;
     ctx.globalAlpha = Math.min(1, p.ttl * 2);
-    ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r);
+    const dx = Math.cos(p.rot) * p.len / 2, dy = Math.sin(p.rot) * p.len / 2;
+    line(ctx, p.x - dx, p.y - dy, p.x + dx, p.y + dy);
+    ctx.globalAlpha = 1;
+  }
+  // un-draw deaths: the doodle's outline erases itself
+  for (const d of fx.deaths) {
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 1 - d.t;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r * (1 + 0.25 * d.t), d.a0 + d.t * 2.5, d.a0 + d.t * 2.5 + (1 - d.t) * Math.PI * 2);
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
   ctx.font = 'bold 15px system-ui';
@@ -210,8 +225,23 @@ export function render(ctx, g, fx, w, h, time, aim) {
     ctx.font = `bold ${Math.round(46 + 10 * (1 - inT))}px system-ui`;
     ctx.textAlign = 'center';
     ctx.fillText(fx.banner.text, FIELD.W / 2, FIELD.H * 0.32);
+    if (fx.banner.sub) {
+      ctx.font = '15px system-ui';
+      ctx.globalAlpha = alpha * 0.7;
+      ctx.fillText(fx.banner.sub, FIELD.W / 2, FIELD.H * 0.32 + 30);
+    }
     ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
+  }
+
+  // boss entrance vignette
+  if (fx.vignette > 0) {
+    const v = Math.min(1, fx.vignette / 0.5);
+    const grad = ctx.createRadialGradient(FIELD.W / 2, FIELD.H / 2, FIELD.H * 0.25, FIELD.W / 2, FIELD.H / 2, FIELD.W * 0.75);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(10,0,20,${0.55 * v})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, FIELD.W, FIELD.H);
   }
 
   if (fx.flash) {

@@ -1,11 +1,15 @@
 // fx.js — particles, floating text, transient effects. Renderer-side only.
 export function createFx() {
-  return { parts: [], texts: [], bolts: [], rings: [], shake: 0, flash: null, hitStop: 0, banner: null, combo: { n: 0, timer: 0 } };
+  return { parts: [], texts: [], bolts: [], rings: [], shake: 0, flash: null, hitStop: 0, banner: null, combo: { n: 0, timer: 0 }, deaths: [], punch: 0, vignette: 0 };
 }
 
 export function fxUpdate(fx, dt) {
-  for (const p of fx.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.g || 0) * dt; p.ttl -= dt; }
+  for (const p of fx.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.g || 0) * dt; p.rot += p.vrot * dt; p.ttl -= dt; }
   fx.parts = fx.parts.filter((p) => p.ttl > 0);
+  for (const d of fx.deaths) d.t += dt / 0.3;
+  fx.deaths = fx.deaths.filter((d) => d.t < 1);
+  fx.punch = Math.max(0, fx.punch - dt);
+  fx.vignette = Math.max(0, fx.vignette - dt);
   for (const t of fx.texts) { t.y -= 26 * dt; t.ttl -= dt; }
   fx.texts = fx.texts.filter((t) => t.ttl > 0);
   for (const b of fx.bolts) b.ttl -= dt;
@@ -19,10 +23,15 @@ export function fxUpdate(fx, dt) {
   if (fx.flash) { fx.flash.ttl -= dt; if (fx.flash.ttl <= 0) fx.flash = null; }
 }
 
+// scribble burst — short pencil-stroke fragments, like the doodle coming apart
 export function burst(fx, x, y, color, n = 12, speed = 140) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random() * 0.8);
-    fx.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 160, r: 2 + Math.random() * 3, color, ttl: 0.5 + Math.random() * 0.4 });
+    fx.parts.push({
+      x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 160,
+      len: 4 + Math.random() * 7, rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 10, color, ttl: 0.5 + Math.random() * 0.4,
+    });
   }
 }
 
@@ -36,6 +45,7 @@ export function handleEvents(fx, g, events) {
     switch (e.type) {
       case 'damage': floatText(fx, e.x, e.y - 18, `${e.amount}`, '#ffd166', 15); break;
       case 'kill': {
+        fx.deaths.push({ x: e.x, y: e.y, r: e.r || 18, color: e.color || '#ff8fa3', t: 0, a0: Math.random() * Math.PI * 2 });
         burst(fx, e.x, e.y, e.color || '#ff9e5e', 16);
         fx.shake = Math.max(fx.shake, 4);
         fx.hitStop = Math.min(0.09, fx.hitStop + 0.045);
@@ -45,14 +55,25 @@ export function handleEvents(fx, g, events) {
         if (c === 3) floatText(fx, 400, 150, 'TRIPLE KILL!', '#ffd166', 32);
         else if (c === 4) floatText(fx, 400, 150, 'QUADRA KILL!', '#ff9e5e', 36);
         else if (c >= 5) floatText(fx, 400, 150, `RAMPAGE x${c}!`, '#ff6b6b', 40);
+        if (c >= 4) fx.punch = 0.22;
         break;
       }
       case 'perfect':
         floatText(fx, e.x, e.y - 30, 'PERFECT!', '#ffd166', 30);
         burst(fx, e.x, e.y, '#ffd166', 22, 240);
+        fx.punch = Math.max(fx.punch, 0.18);
         break;
-      case 'bossSpawn': fx.shake = 10; fx.banner = { text: 'BOSS!!', ttl: 1.6, color: '#ffd166' }; break;
-      case 'bossKill': burst(fx, e.x, e.y, '#ffd166', 60, 320); fx.shake = 16; fx.hitStop = 0.28; fx.flash = { color: 'rgba(255,209,102,0.25)', ttl: 0.5 }; break;
+      case 'bossSpawn':
+        fx.shake = 10;
+        fx.vignette = 2.0;
+        fx.banner = { text: '낙서 대마왕', sub: 'THE SCRIBBLE OVERLORD', ttl: 2.4, color: '#ffd166' };
+        break;
+      case 'bossKill':
+        fx.deaths.push({ x: e.x, y: e.y, r: e.r || 42, color: '#ffd166', t: 0, a0: 0 });
+        burst(fx, e.x, e.y, '#ffd166', 60, 320);
+        fx.shake = 16; fx.hitStop = 0.28; fx.punch = 0.3;
+        fx.flash = { color: 'rgba(255,209,102,0.25)', ttl: 0.5 };
+        break;
       case 'spikeHit': burst(fx, e.x, e.y, '#9bf6a3', 8, 100); break;
       case 'fx_lightning':
         fx.bolts.push({ chain: e.chain, ttl: 0.22 });

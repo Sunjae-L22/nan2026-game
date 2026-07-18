@@ -57,3 +57,12 @@ Trained offline on Google Quick, Draw! stroke data rasterized by the *same* `pre
   - `src/sfx.js` — fully procedural WebAudio sound (oscillator + filtered-noise synthesis, ~3KB): per-spell casts, kill pops, fanfares, boss stingers, win/lose jingles. No audio assets → nothing to license
   - Hit-stop slow-mo on kills, wave/clear/boss banners, mute toggle, mobile layout pass
 - **Note:** balance decisions were made from simulation data, not guesses — the bot script stays in the repo as evidence.
+
+### 2026-07-18 — Video-impact juice set (participant ideation session)
+- **Tool:** Claude (Cowork mode) — proposed 4 video-impact features, participant approved all
+- **Produced:**
+  1. `src/flight.js` — the player's actual sketch lifts off the pad and flies across the screen into its target (fixed overlay canvas, bezier arc, glow); cast resolves on arrival. Makes the core loop ("my doodle becomes the spell") legible in any 3-second clip
+  2. PERFECT system — confidence ≥95% = 1.25x crit, golden flight, shimmer sfx ("clean drawing = power" made visible)
+  3. Multi-kill combos — TRIPLE/QUADRA/RAMPAGE pops with pitch-rising kill blips
+  4. Un-draw deaths (outline erases itself + pencil-scribble fragments), punch zoom, boss nameplate "낙서 대마왕" + entrance vignette
+- Tests 29 green; balance sim unchanged (~43% skilled win).
