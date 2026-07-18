@@ -1,6 +1,6 @@
 # STATE — project memory
 
-_Last updated: 2026-07-17 (session 1 close — M3 part 2 user-verified)_
+_Last updated: 2026-07-18 (session 2 — M3 complete, pending live verify)_
 
 ## Facts
 
@@ -25,9 +25,9 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. M3 pt3: sound (WebAudio synth), kill fx upgrade, wave banners, monster variety
-2. M3 pt3: mobile layout pass (aim = tap already works); balance check at high waves
-3. M4: title art, video shot list, PDFs
+1. User push → live verify M3.3 (monster variety visuals, banners; sound/hit-stop by participant)
+2. M4: README screenshot/GIF + title polish, video shot list + capture checklist
+3. M4: PDF export of GAME.md / AI_USAGE.md(+ASSETS), final submission checklist run
 
 ## Session 1 close notes
 - M3.2 verified by participant on live Pages build: L/R Shift cast OK, aimed casting lands at hover point with reticle OK, auto-target fallback OK.

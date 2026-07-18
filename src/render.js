@@ -85,12 +85,14 @@ export function render(ctx, g, fx, w, h, time, aim) {
     hpBar(ctx, wl.x + wl.w / 2, wl.y - 10, 40, wl.hp / wl.maxHp, '#c9a97c');
   }
 
-  // monsters — wobbly doodle blobs
+  // monsters — wobbly doodle blobs (wobble style per archetype)
   for (const m of g.monsters) {
-    const t = time * 3 + m.wobble;
-    ctx.strokeStyle = m.hitFlash > 0 ? '#ffffff' : '#ff8fa3';
-    ctx.fillStyle = m.hitFlash > 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,143,163,0.13)';
-    ctx.lineWidth = 3;
+    const freq = m.kind === 'fast' ? 6.5 : m.kind === 'tank' ? 1.7 : m.boss ? 1.2 : 3;
+    const t = time * freq + m.wobble;
+    const col = m.color || '#ff8fa3';
+    ctx.strokeStyle = m.hitFlash > 0 ? '#ffffff' : col;
+    ctx.fillStyle = m.hitFlash > 0 ? 'rgba(255,255,255,0.35)' : col + '22';
+    ctx.lineWidth = m.boss ? 5 : 3;
     ctx.beginPath();
     const N = 10;
     for (let i = 0; i <= N; i++) {
@@ -110,7 +112,21 @@ export function render(ctx, g, fx, w, h, time, aim) {
     ctx.strokeStyle = '#1b1e2e'; ctx.lineWidth = 2;
     line(ctx, ex - 4, ey - 7, ex + 4, ey - 4);
     line(ctx, ex + m.radius * 0.55 + 4, ey - 7, ex + m.radius * 0.55 - 4, ey - 4);
-    if (m.hp < m.maxHp) hpBar(ctx, m.x, m.y - m.radius - 10, 34, m.hp / m.maxHp, '#ff8fa3');
+    if (m.boss) {
+      // doodle crown
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = 3;
+      const cy = m.y - m.radius - 8;
+      ctx.beginPath();
+      ctx.moveTo(m.x - 18, cy);
+      ctx.lineTo(m.x - 14, cy - 14); ctx.lineTo(m.x - 7, cy - 2);
+      ctx.lineTo(m.x, cy - 16); ctx.lineTo(m.x + 7, cy - 2);
+      ctx.lineTo(m.x + 14, cy - 14); ctx.lineTo(m.x + 18, cy);
+      ctx.closePath(); ctx.stroke();
+      hpBar(ctx, m.x, m.y - m.radius - 26, 90, m.hp / m.maxHp, '#ffd166');
+    } else if (m.hp < m.maxHp) {
+      hpBar(ctx, m.x, m.y - m.radius - 10, 34, m.hp / m.maxHp, col);
+    }
   }
 
   // fx: bolts, rings, particles, texts
@@ -181,6 +197,20 @@ export function render(ctx, g, fx, w, h, time, aim) {
       line(ctx, aim.x, aim.y - 16, aim.x, aim.y - 8);
       line(ctx, aim.x, aim.y + 8, aim.x, aim.y + 16);
     }
+    ctx.globalAlpha = 1;
+  }
+
+  // wave banner
+  if (fx.banner) {
+    const life = fx.banner.ttl;
+    const inT = Math.min(1, (1.5 - life) * 6);            // pop in
+    const alpha = Math.min(1, life * 1.6) * Math.min(1, inT);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = fx.banner.color || '#e8ecf1';
+    ctx.font = `bold ${Math.round(46 + 10 * (1 - inT))}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.fillText(fx.banner.text, FIELD.W / 2, FIELD.H * 0.32);
+    ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
   }
 

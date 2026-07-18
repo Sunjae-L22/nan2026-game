@@ -48,3 +48,12 @@ Trained offline on Google Quick, Draw! stroke data rasterized by the *same* `pre
 - **Tool:** Claude (Cowork mode)
 - **Prompt (near-verbatim):** "시전 위치가 자동인 게 아쉽다 — 마우스를 가져다 댄 곳에 시전되게. 그리고 Enter 대신 좌우 Shift로 시전(왼손/오른손 모두 편하게)."
 - **Produced:** every spell accepts an optional aim point (mouse hover / tap on battlefield, clamped; per-spell ghost reticle shows AoE while aiming); auto-targeting kept as fallback so keyboard-less/mobile play still works. Cast key: L/R Shift (Enter secondary). +4 tests (24 green).
+
+### 2026-07-18 — M3 (part 3): monsters, boss, balance-by-simulation, synthesized audio
+- **Tool:** Claude (Cowork mode)
+- **What was built:**
+  - Monster archetypes (fast/tank) + final-wave boss with doodle crown
+  - `training/simulate.mjs` — autoplay bot at 3 skill profiles × 30 seeds used to tune difficulty. Initial draft-system curve was unwinnable (0% at all profiles); after tuning (incl. +15%/wave spell growth) the curve landed at casual 6.0 / mid 7.4 / skilled 10.4 avg waves with ~40-47% skilled win rate
+  - `src/sfx.js` — fully procedural WebAudio sound (oscillator + filtered-noise synthesis, ~3KB): per-spell casts, kill pops, fanfares, boss stingers, win/lose jingles. No audio assets → nothing to license
+  - Hit-stop slow-mo on kills, wave/clear/boss banners, mute toggle, mobile layout pass
+- **Note:** balance decisions were made from simulation data, not guesses — the bot script stays in the repo as evidence.

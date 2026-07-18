@@ -5,6 +5,7 @@ import { render, drawGlyph, fieldTransform } from './render.js';
 import { createFx, fxUpdate, handleEvents, floatText } from './fx.js';
 import { loadModel } from './nn.js';
 import { createPad } from './drawpad.js';
+import { createSfx } from './sfx.js';
 
 const DEBUG = new URLSearchParams(location.search).has('debug');
 const CAST_MIN = 0.25;
@@ -12,6 +13,7 @@ const CAST_MIN = 0.25;
 const model = loadModel(await (await fetch('assets/model/model.json')).json());
 const g = createGame({ seed: Date.now() >>> 0 });
 const fx = createFx();
+const sfx = createSfx();
 
 const gameCanvas = document.getElementById('game');
 const gctx = gameCanvas.getContext('2d');
@@ -92,10 +94,12 @@ function doCast() {
   const { idx: best, p: bp } = bestUnlocked();
   const ok = best >= 0 && bp >= CAST_MIN && castByIndex(g, best, bp, aimField());
   if (ok) {
+    sfx.cast(SPELLS[best].key);
     padCanvas.classList.remove('castflash'); void padCanvas.offsetWidth;
     padCanvas.style.setProperty('--castcolor', SPELLS[best].color);
     padCanvas.classList.add('castflash');
   } else {
+    sfx.fizzle();
     padCanvas.classList.remove('fizzle'); void padCanvas.offsetWidth;
     padCanvas.classList.add('fizzle');
   }
@@ -119,6 +123,7 @@ function showTitle() {
   document.getElementById('startBtn').onclick = begin;
 }
 function begin() {
+  sfx.resume();
   startGame(g);
   renderLegend();
   hideOverlay();
@@ -151,6 +156,7 @@ function showDraft() {
 }
 function pickCard(ci) {
   if (!pickDraft(g, ci)) return;
+  sfx.pick();
   renderLegend();
   hideOverlay();
   draftShown = false;
@@ -161,8 +167,13 @@ function pickCard(ci) {
 }
 
 // ---------- keys ----------
+document.getElementById('mute').onclick = () => {
+  document.getElementById('mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
+};
+
 addEventListener('keydown', (e) => {
   if (e.key === 'Shift' && !e.repeat) { e.preventDefault(); doCast(); }   // L/R Shift both — either hand
+  if (e.key === 'm' || e.key === 'M') document.getElementById('mute').click();
   if (e.key === 'Enter') { e.preventDefault(); doCast(); }
   if (e.key === 'Backspace') { e.preventDefault(); pad.undo(); }
   if ((e.key === 'r' || e.key === 'R') && g.state !== 'playing') begin();
@@ -190,8 +201,9 @@ let last = performance.now(), ended = false;
 function tick(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  update(g, dt);
+  update(g, fx.hitStop > 0 ? dt * 0.12 : dt);   // hit-stop: brief slow-mo on kills
   handleEvents(fx, g, g.events);
+  sfx.handle(g.events);
   g.events.length = 0;
   fxUpdate(fx, dt);
   const b = bestUnlocked();
@@ -206,4 +218,4 @@ function tick(now) {
 }
 showTitle();
 requestAnimationFrame(tick);
-console.log('[game] Scribble Summoner M3.2 boot OK');
+console.log('[game] Scribble Summoner M3.3 boot OK');

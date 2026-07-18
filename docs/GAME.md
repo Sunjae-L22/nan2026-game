@@ -14,7 +14,7 @@ What you draw is what you wield — sketch shapes and an on-device AI recognizes
 ## How to play  <!-- all three subsections are REQUIRED by submission -->
 
 ### Goal
-Defend the gate against 10 waves of doodle monsters. Draw spell shapes on the pad — the on-device AI recognizes them and casts the matching spell. Cleaner drawings = higher confidence = more power. Clearing a wave lets you pick 1 new spell card (start: 참격/sword + 체인 라이트닝/lightning, grow to all 8).
+Defend the gate against 10 waves of doodle monsters — normals, swift blue darters (wave 4+), hulking tanks (wave 6+), and a crowned BOSS on the final wave. Draw spell shapes on the pad — the on-device AI recognizes them and casts the matching spell. Cleaner drawings = higher confidence = more power. Clearing a wave lets you pick 1 new spell card (start: 참격/sword + 체인 라이트닝/lightning, grow to all 8).
 
 ### Controls
 - Draw: mouse drag / touch drag on the right-side pad (multi-stroke shapes fine)
@@ -35,6 +35,10 @@ Defend the gate against 10 waves of doodle monsters. Draw spell shapes on the pa
 ## Screenshots
 
 _TBD_
+
+## Sound
+
+All audio is procedurally synthesized in-browser (WebAudio oscillators + filtered noise) — zero audio files, zero licensing. Per-spell cast sounds, kill pops, wave fanfares, boss stingers, win/lose jingles. Mute: 🔊 button or **M**.
 
 ## The AI inside the game
 

@@ -48,10 +48,14 @@
     #overlay .small { font-size: 12px; opacity: .5; margin-top: 14px; }
     #overlay button { font-size: 17px; padding: 12px 26px; background: #4cc9f0; color: #101322; font-weight: 700; }
     @media (max-width: 760px) {
-      #wrap { flex-direction: column; }
-      #panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
-      #pad { width: 46vw; max-width: 300px; }
+      #wrap { flex-direction: column; gap: 6px; padding: 6px; }
+      #left { min-height: 44vh; }
+      #panel { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+      #pad { width: 44vw; max-width: 280px; aspect-ratio: 1; }
       #panel > div { flex: 1; min-width: 150px; }
+      #legend { grid-template-columns: 1fr; max-height: 26vh; }
+      #cast { font-size: 17px; padding: 12px 20px; }
+      #overlay h1 { font-size: 30px; }
     }
   </style>
 </head>
@@ -66,6 +70,7 @@
       <div id="padrow">
         <button id="cast" disabled>CAST ⇧</button>
         <button id="clear">Clear</button>
+        <button id="mute" title="M">🔊</button>
         <div class="hint">그리고 Shift — 전장에 마우스 올리면 조준 시전!</div>
       </div>
       <div id="bars"></div>

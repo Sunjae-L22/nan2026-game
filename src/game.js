@@ -165,6 +165,7 @@ export function update(g, dt) {
         if (g.shield < 0) { g.gateHP += g.shield; g.shield = 0; }
       } else {
         g.gateHP -= dmg;
+        emit(g, 'gateHit', {});
       }
     }
     m.hitFlash = Math.max(0, (m.hitFlash || 0) - dt);
