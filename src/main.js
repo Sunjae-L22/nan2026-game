@@ -1,6 +1,7 @@
 // main.js — bootstrap: model load, UI wiring, game loop, draft overlay.
-import { createGame, startGame, update, TUNE, pickDraft, FIELD, frontmost, densestPoint } from './game.js';
-import { SPELLS, castByIndex, PERFECT_CONF } from './spells.js';
+import { createGame, startGame, update, TUNE, pickDraft, setDraftProvider, FIELD, frontmost, densestPoint } from './game.js';
+import { SPELLS, castByIndex, perfectThreshold } from './spells.js';
+import { cardProvider, cardInfo } from './cards.js';
 import { render, drawGlyph, fieldTransform } from './render.js';
 import { createFx, fxUpdate, handleEvents, floatText } from './fx.js';
 import { loadModel } from './nn.js';
@@ -12,6 +13,7 @@ const DEBUG = new URLSearchParams(location.search).has('debug');
 const CAST_MIN = 0.25;
 
 const model = loadModel(await (await fetch('assets/model/model.json')).json());
+setDraftProvider(cardProvider);
 const g = createGame({ seed: Date.now() >>> 0 });
 const fx = createFx();
 const sfx = createSfx();
@@ -124,7 +126,7 @@ function doCast() {
     return;
   }
   const target = aimField();
-  const perfect = bp >= PERFECT_CONF;
+  const perfect = bp >= perfectThreshold(g);
   // the sketch itself flies from the pad to where the spell will land
   const strokesCopy = pad.strokes.map(([xs, ys]) => [xs.slice(), ys.slice()]);
   flight.launch(strokesCopy, padCanvas.getBoundingClientRect(),
@@ -178,29 +180,38 @@ function showEnd(win) {
 let draftShown = false;
 function showDraft() {
   const opts = g.pendingDraft;
-  const cards = opts.map((ci, k) => `
-    <div class="card" data-ci="${ci}">
-      <canvas id="cardGlyph${k}" width="72" height="72"></canvas>
-      <b>${SPELLS[ci].name}</b>
-      <span>${SPELLS[ci].desc}</span>
-      <em>[${k + 1}]</em>
-    </div>`).join('');
-  showOverlay(`<h2>WAVE ${g.wave} CLEAR!</h2><p>새 마법을 선택하라</p><div id="cards">${cards}</div>`);
-  opts.forEach((ci, k) => drawGlyph(document.getElementById(`cardGlyph${k}`).getContext('2d'), SPELLS[ci].key, 72));
+  const cards = opts.map((id, k) => {
+    const info = cardInfo(id, SPELLS);
+    const icon = info.isNew
+      ? `<canvas id="cardGlyph${k}" width="72" height="72"></canvas>`
+      : `<div class="cardEmoji">${info.emoji}</div>`;
+    const tag = info.isNew ? '<i class="newtag">NEW SPELL</i>' : '<i class="modtag">UPGRADE</i>';
+    return `<div class="card" data-id="${id}">${tag}${icon}<b>${info.name}</b><span>${info.desc}</span><em>[${k + 1}]</em></div>`;
+  }).join('');
+  showOverlay(`<h2>WAVE ${g.wave} CLEAR!</h2><p>카드를 선택하라</p><div id="cards">${cards}</div>`);
+  opts.forEach((id, k) => {
+    const info = cardInfo(id, SPELLS);
+    if (info.isNew) drawGlyph(document.getElementById(`cardGlyph${k}`).getContext('2d'), SPELLS[info.unlock].key, 72);
+  });
   overlay.querySelectorAll('.card').forEach((el) => {
-    el.onclick = () => pickCard(parseInt(el.dataset.ci, 10));
+    el.onclick = () => pickCard(el.dataset.id);
   });
 }
-function pickCard(ci) {
-  if (!pickDraft(g, ci)) return;
+function pickCard(id) {
+  const info = cardInfo(id, SPELLS);
+  if (!pickDraft(g, id)) return;
   sfx.pick();
   renderLegend();
   hideOverlay();
   draftShown = false;
-  floatText(fx, 400, 120, `NEW: ${SPELLS[ci].name}!`, SPELLS[ci].color, 26);
-  const cell = legendCells[ci];
-  cell.classList.remove('justUnlocked'); void cell.offsetWidth;
-  cell.classList.add('justUnlocked');
+  if (info.isNew) {
+    floatText(fx, 400, 120, `NEW: ${info.name}!`, SPELLS[info.unlock].color, 26);
+    const cell = legendCells[info.unlock];
+    cell.classList.remove('justUnlocked'); void cell.offsetWidth;
+    cell.classList.add('justUnlocked');
+  } else {
+    floatText(fx, 400, 120, `${info.emoji} ${info.name}!`, '#ffd166', 26);
+  }
 }
 
 // ---------- keys ----------
@@ -215,8 +226,8 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Backspace') { e.preventDefault(); pad.undo(); }
   if ((e.key === 'r' || e.key === 'R') && g.state !== 'playing') begin();
   if (g.pendingDraft && ['1', '2', '3'].includes(e.key)) {
-    const ci = g.pendingDraft[parseInt(e.key, 10) - 1];
-    if (ci !== undefined) pickCard(ci);
+    const id = g.pendingDraft[parseInt(e.key, 10) - 1];
+    if (id !== undefined) pickCard(id);
   }
   if (!DEBUG) return;
   if (e.key === 'k') for (const m of [...g.monsters]) m.hp = -1;

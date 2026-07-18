@@ -9,7 +9,7 @@ export const TUNE = {
   wavePause: 2.5,
   spawnInterval: 0.85,
   monster: (wave) => ({
-    hp: 16 + 6.5 * wave,
+    hp: 16 + 7.2 * wave,
     speed: 42 + 3 * wave,
     dps: 5 + 0.7 * wave,
     radius: 16 + Math.min(8, wave),
@@ -52,8 +52,11 @@ export function createGame(opts = {}) {
     gateHP: TUNE.gateHP,
     score: 0,
     unlocked: new Set(opts.unlocked ?? TUNE.startSpells),
-    pendingDraft: null,       // [classIdx, ...] while player chooses; sim paused
+    pendingDraft: null,       // [cardId, ...] while player chooses; sim paused
     bossSpawned: false,
+    gateMaxHP: TUNE.gateHP,
+    mods: { power: 0, chain: 0, star: 0, shield: 0, wall: 0, cloud: 0, fire: 0, spike: 0, sword: 0, perfect: 0 },
+    cardCounts: {},
     kills: 0,
     casts: 0,
     events: [],               // drained by renderer for fx/sound
@@ -220,24 +223,22 @@ export function damageMonster(g, m, dmg, quiet = false) {
   }
 }
 
+// Draft content lives in cards.js — registered here so game.js stays content-agnostic.
+let draftProvider = null;
+export function setDraftProvider(p) { draftProvider = p; }
+
 function maybeStartDraft(g) {
-  if (g.wave >= TUNE.waves) return;                 // no draft after the final wave
-  const locked = [];
-  for (let i = 0; i < TUNE.numSpells; i++) if (!g.unlocked.has(i)) locked.push(i);
-  if (locked.length === 0) return;
-  for (let i = locked.length - 1; i > 0; i--) {     // rng shuffle
-    const j = Math.floor(g.rng() * (i + 1));
-    [locked[i], locked[j]] = [locked[j], locked[i]];
-  }
-  g.pendingDraft = locked.slice(0, TUNE.draftSize);
-  emit(g, 'draft', { options: [...g.pendingDraft] });
+  if (g.wave >= TUNE.waves || !draftProvider) return;   // no draft after the final wave
+  const options = draftProvider.build(g);
+  if (!options || options.length === 0) return;
+  g.pendingDraft = options;
+  emit(g, 'draft', { options: [...options] });
 }
 
-export function pickDraft(g, classIdx) {
-  if (!g.pendingDraft || !g.pendingDraft.includes(classIdx)) return false;
-  g.unlocked.add(classIdx);
+export function pickDraft(g, cardId) {
+  if (!g.pendingDraft || !g.pendingDraft.includes(cardId)) return false;
+  if (!draftProvider.apply(g, cardId)) return false;
   g.pendingDraft = null;
-  emit(g, 'unlock', { classIdx });
   return true;
 }
 

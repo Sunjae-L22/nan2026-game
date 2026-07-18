@@ -1,8 +1,11 @@
 // simulate.mjs — headless balance bot. Plays like a human at a given casting cadence:
 // draws (interval), casts a sensible unlocked spell at the densest cluster, drafts greedily.
 // Usage: node training/simulate.mjs
-import { createGame, update, TUNE, pickDraft, densestPoint } from '../src/game.js';
+import { createGame, update, TUNE, pickDraft, setDraftProvider, densestPoint } from '../src/game.js';
 import { SPELLS, castByIndex } from '../src/spells.js';
+import { cardProvider } from '../src/cards.js';
+
+setDraftProvider(cardProvider);
 
 const IDX = Object.fromEntries(SPELLS.map((s, i) => [s.key, i]));
 const DRAFT_PRIORITY = ['star', 'circle', 'cloud', 'campfire', 'square', 'triangle'];
@@ -28,8 +31,9 @@ function playOne(seed, interval, conf) {
     update(g, 1 / 60);
     maxWave = Math.max(maxWave, g.wave);
     if (g.pendingDraft) {
-      const pick = DRAFT_PRIORITY.map(k => IDX[k]).find(i => g.pendingDraft.includes(i)) ?? g.pendingDraft[0];
-      pickDraft(g, pick);
+      const unlockPick = DRAFT_PRIORITY.map(k => `unlock:${IDX[k]}`).find(id => g.pendingDraft.includes(id));
+      const modPick = ['power', 'repair', 'gatemax'].find(id => g.pendingDraft.includes(id));
+      pickDraft(g, unlockPick ?? modPick ?? g.pendingDraft[0]);
     }
     castTimer -= 1 / 60;
     if (castTimer <= 0 && g.state === 'playing') {

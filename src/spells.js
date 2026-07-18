@@ -18,7 +18,8 @@ export const SPELLS = [
       const hit = new Set();
       let cur = first, dmg = 26 * p;
       const chain = [];
-      for (let i = 0; i < 4 && cur; i++) {
+      const jumps = 4 + (g.mods?.chain || 0);
+      for (let i = 0; i < jumps && cur; i++) {
         damageMonster(g, cur, dmg);
         hit.add(cur.id);
         chain.push({ x: cur.x, y: cur.y });
@@ -38,7 +39,7 @@ export const SPELLS = [
     key: 'circle', name: '보호막', color: '#4cc9f0',
     desc: 'Shield absorbs gate damage',
     cast(g, p, t) {
-      g.shield = Math.max(g.shield, 55 * p);
+      g.shield = Math.max(g.shield, 55 * p * (1 + 0.4 * (g.mods?.shield || 0)));
       g.shieldTTL = 8;
       emit(g, 'fx_shield', {});
       return true;
@@ -51,7 +52,7 @@ export const SPELLS = [
       const front = frontmost(g, 1)[0];
       const x = t ? clamp(t.x, 40, FIELD.W - 40) : (front ? Math.max(90, front.x - 70) : FIELD.W * 0.35);
       const y = t ? clamp(t.y, 40, FIELD.H - 40) : (front ? front.y : FIELD.H * 0.5);
-      g.zones.push({ id: zoneId++, kind: 'spike', x, y, r: 46, ttl: 12, hit: 30 * p, hits: 3 });
+      g.zones.push({ id: zoneId++, kind: 'spike', x, y, r: 46, ttl: 12, hit: 30 * p, hits: 3 + 2 * (g.mods?.spike || 0) });
       emit(g, 'fx_spike', { x, y });
       return true;
     },
@@ -61,7 +62,7 @@ export const SPELLS = [
     desc: 'Blast at the densest cluster (aimable)',
     cast(g, p, t) {
       const c = t ?? densestPoint(g);
-      const r = 120;
+      const r = 120 * (1 + 0.3 * (g.mods?.star || 0));
       for (const m of [...g.monsters]) {
         const dx = m.x - c.x, dy = m.y - c.y;
         const d2 = dx * dx + dy * dy;
@@ -76,7 +77,7 @@ export const SPELLS = [
     desc: 'Poison cloud: DoT + slow (aimable)',
     cast(g, p, t) {
       const c = t ?? densestPoint(g);
-      g.zones.push({ id: zoneId++, kind: 'poison', x: c.x, y: c.y, r: 95, ttl: 5, dps: 9 * p, slow: 0.55 });
+      g.zones.push({ id: zoneId++, kind: 'poison', x: c.x, y: c.y, r: 95, ttl: 5 + 1.5 * (g.mods?.cloud || 0), dps: 9 * p, slow: 0.55 - 0.17 * (g.mods?.cloud || 0) });
       emit(g, 'fx_cloud', { x: c.x, y: c.y });
       return true;
     },
@@ -87,7 +88,7 @@ export const SPELLS = [
     cast(g, p, t) {
       const tgt = t ? nearest(g, t.x, t.y, NONE) : frontmost(g, 1)[0];
       if (!tgt) return false;
-      damageMonster(g, tgt, 55 * p);
+      damageMonster(g, tgt, 55 * p * (1 + 0.35 * (g.mods?.sword || 0)));
       emit(g, 'fx_slash', { x: tgt.x, y: tgt.y });
       return true;
     },
@@ -98,7 +99,8 @@ export const SPELLS = [
     cast(g, p, t) {
       const front = frontmost(g, 1)[0];
       const x = t ? clamp(t.x, 40, FIELD.W - 80) : (front ? Math.max(60, front.x - 90) : FIELD.W * 0.3);
-      g.walls.push({ x, y: 40, w: 26, h: FIELD.H - 80, hp: 80 * p, maxHp: 80 * p, ttl: 10 });
+      const whp = 80 * p * (1 + 0.6 * (g.mods?.wall || 0));
+      g.walls.push({ x, y: 40, w: 26, h: FIELD.H - 80, hp: whp, maxHp: whp, ttl: 10 });
       emit(g, 'fx_wall', { x });
       return true;
     },
@@ -109,7 +111,7 @@ export const SPELLS = [
     cast(g, p, t) {
       const x = t ? clamp(t.x, 40, FIELD.W - 40) : 110;
       const y = t ? clamp(t.y, 40, FIELD.H - 40) : FIELD.H / 2;
-      g.zones.push({ id: zoneId++, kind: 'fire', x, y, r: 110, ttl: 6, dps: 14 * p });
+      g.zones.push({ id: zoneId++, kind: 'fire', x, y, r: 110, ttl: 6, dps: 14 * p * (1 + 0.4 * (g.mods?.fire || 0)) });
       emit(g, 'fx_fire', { x, y });
       return true;
     },
@@ -119,12 +121,13 @@ export const SPELLS = [
 // classIdx must match model.classes order. target = optional {x,y} aim point.
 // Returns false if the cast fizzled (no target monster).
 export const PERFECT_CONF = 0.95;
+export const perfectThreshold = (g) => PERFECT_CONF - 0.03 * (g.mods?.perfect || 0);
 
 export function castByIndex(g, classIdx, confidence, target = null) {
   const spell = SPELLS[classIdx];
   if (!spell || g.state !== 'playing' || !g.unlocked.has(classIdx)) return false;
-  const perfect = confidence >= PERFECT_CONF;
-  let p = (0.5 + confidence) * (1 + TUNE.spellGrowth * Math.max(0, g.wave - 1));
+  const perfect = confidence >= perfectThreshold(g);
+  let p = (0.5 + confidence) * (1 + TUNE.spellGrowth * Math.max(0, g.wave - 1)) * (1 + (g.mods?.power || 0));
   if (perfect) p *= 1.25;                                  // clean drawing = crit
   const ok = spell.cast(g, p, target);
   if (ok) {

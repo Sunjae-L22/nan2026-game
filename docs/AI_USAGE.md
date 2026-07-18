@@ -66,3 +66,9 @@ Trained offline on Google Quick, Draw! stroke data rasterized by the *same* `pre
   3. Multi-kill combos — TRIPLE/QUADRA/RAMPAGE pops with pitch-rising kill blips
   4. Un-draw deaths (outline erases itself + pencil-scribble fragments), punch zoom, boss nameplate "낙서 대마왕" + entrance vignette
 - Tests 29 green; balance sim unchanged (~43% skilled win).
+
+### 2026-07-18 — Card pool expansion (roguelite upgrades)
+- **Tool:** Claude (Cowork mode). User request from playtest: "카드가 몇 장 없다 — 훨씬 많은 버전으로."
+- **Produced:** data-driven card system (`src/cards.js`) — 6 unlock cards + 12 stackable upgrade cards (global: power/repair/reinforce/perfect-ease; per-spell: chain+1, blast radius, shield amount, wall HP, poison slow, fire dps, spike hits, sword dmg) with max-stack limits and eligibility rules (per-spell upgrades only offered once that spell is unlocked). game.js stays content-agnostic via a draft-provider hook.
+- **Balance:** rerun of the autoplay sim showed skilled win rate jump 43%→73%; retuned monster hp (+0.7/wave) to land at 53% skilled / 7.8 mid / 6.0 casual. Drafts no longer run dry after wave 7.
+- Tests: 32 green.

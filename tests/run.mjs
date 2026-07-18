@@ -1,6 +1,9 @@
 // Lightweight test runner for game logic. Usage: node tests/run.mjs
-import { createGame, startGame, update, TUNE, FIELD, damageMonster, pickDraft } from '../src/game.js';
-import { SPELLS, castByIndex } from '../src/spells.js';
+import { createGame, startGame, update, TUNE, FIELD, damageMonster, pickDraft, setDraftProvider } from '../src/game.js';
+import { SPELLS, castByIndex, perfectThreshold } from '../src/spells.js';
+import { cardProvider, MOD_CARDS } from '../src/cards.js';
+
+setDraftProvider(cardProvider);
 
 let pass = 0, fail = 0;
 function t(name, fn) {
@@ -135,7 +138,7 @@ t('surviving all waves → win', () => {
   for (let i = 0; i < 60 * 60 * 8; i++) {
     update(g, 1 / 60);
     if (g.pendingDraft) pickDraft(g, g.pendingDraft[0]);
-    if (g.monsters.length) for (const m of [...g.monsters]) damageMonster(g, m, 1000);
+    if (g.monsters.length) for (const m of [...g.monsters]) damageMonster(g, m, 5000);
     if (g.state === 'win') break;
   }
   eq(g.state, 'win');
@@ -166,7 +169,7 @@ t('starters are sword + lightning only', () => {
   ok(g.unlocked.has(IDX.sword) && g.unlocked.has(IDX.lightning));
 });
 
-t('wave clear opens a 3-option draft of locked spells, sim pauses', () => {
+t('wave clear opens a 3-card draft, sim pauses, pick resumes', () => {
   const g = fresh();
   run(g, 1.3 + TUNE.waveCount(1) * TUNE.spawnInterval + 0.2);
   for (const m of [...g.monsters]) damageMonster(g, m, 9999);
@@ -174,26 +177,66 @@ t('wave clear opens a 3-option draft of locked spells, sim pauses', () => {
   ok(g.pendingDraft, 'draft pending after wave clear');
   eq(g.pendingDraft.length, 3);
   eq(new Set(g.pendingDraft).size, 3, 'no duplicate options');
-  for (const i of g.pendingDraft) ok(!g.unlocked.has(i), 'options are locked spells');
   const wave = g.wave, t0 = g.time;
   run(g, 2);
   eq(g.wave, wave, 'wave frozen during draft');
   eq(g.time, t0, 'time frozen during draft');
   const choice = g.pendingDraft[1];
-  eq(pickDraft(g, 999), false, 'invalid pick rejected');
+  eq(pickDraft(g, 'nonsense'), false, 'invalid pick rejected');
   ok(pickDraft(g, choice), 'valid pick');
-  ok(g.unlocked.has(choice));
   eq(g.pendingDraft, null);
   run(g, 3);
   eq(g.wave, wave + 1, 'resumes to next wave');
 });
 
-t('no draft when everything is unlocked', () => {
+t('unlock cards unlock; mod cards stack with max limits', () => {
+  const g = fresh();
+  ok(cardProvider.apply(g, 'unlock:3'), 'unlock star');
+  ok(g.unlocked.has(3));
+  eq(cardProvider.apply(g, 'unlock:3'), false, 'no double unlock');
+  ok(cardProvider.apply(g, 'power'));
+  ok(cardProvider.apply(g, 'power'));
+  eq(g.mods.power.toFixed(2), '0.20');
+  // max limit respected in pool
+  for (let i = 0; i < 3; i++) cardProvider.apply(g, 'power');
+  eq(g.cardCounts.power, 5);
+  for (let k = 0; k < 30; k++) ok(!cardProvider.build(g).includes('power'), 'power capped out of pool');
+});
+
+t('mod cards only offered for unlocked spells', () => {
+  const g = fresh();   // circle locked
+  for (let k = 0; k < 40; k++) {
+    const pool = cardProvider.build(g);
+    ok(!pool.includes('shield'), 'shield upgrade requires circle unlocked');
+  }
+});
+
+t('draft continues after all spells unlocked (mod cards)', () => {
   const g = allUnlocked(fresh());
   run(g, 1.3 + TUNE.waveCount(1) * TUNE.spawnInterval + 0.2);
   for (const m of [...g.monsters]) damageMonster(g, m, 9999);
   run(g, 0.5);
-  eq(g.pendingDraft, null);
+  ok(g.pendingDraft, 'mods keep the draft alive');
+  ok(g.pendingDraft.every(id => !id.startsWith('unlock:')), 'all mod cards');
+});
+
+t('power/sword mods increase damage; repair heals gate; perfect ease shifts threshold', () => {
+  const g = allUnlocked(calm(fresh()));
+  g.monsters.push({ id: 990, x: 300, y: 200, hp: 100000, maxHp: 100000, speed: 0, dps: 0, radius: 16 });
+  castByIndex(g, IDX.sword, 0.5);
+  const base = 100000 - g.monsters[0].hp;
+  cardProvider.apply(g, 'power');
+  cardProvider.apply(g, 'swordD');
+  g.monsters[0].hp = 100000;
+  castByIndex(g, IDX.sword, 0.5);
+  const boosted = 100000 - g.monsters[0].hp;
+  ok(Math.abs(boosted / base - 1.1 * 1.35) < 0.01, `mods multiply (${(boosted/base).toFixed(3)})`);
+  g.gateHP = 40;
+  cardProvider.apply(g, 'repair');
+  eq(g.gateHP, 70);
+  eq(perfectThreshold(g), 0.95);
+  cardProvider.apply(g, 'perfect');
+  ok(Math.abs(perfectThreshold(g) - 0.92) < 1e-9);
 });
 
 t('star blast honors aim target', () => {
