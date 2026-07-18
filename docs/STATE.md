@@ -25,9 +25,9 @@ Fallback if recognition accuracy disappoints early: cut classes to 5–6 highly 
 
 ## Next 3 steps
 
-1. User push → live verify M3.3 (monster variety visuals, banners; sound/hit-stop by participant)
-2. M4: README screenshot/GIF + title polish, video shot list + capture checklist
-3. M4: PDF export of GAME.md / AI_USAGE.md(+ASSETS), final submission checklist run
+1. User push → verify M3.3 (sound/hit-stop/banners/monster variety — participant checklist)
+2. CONTENT PHASE (user decision 2026-07-18): keep upgrading the game through late July — collect feature ideas & playtest feedback, iterate. M4 (video + PDFs + freeze) deliberately deferred to ~Aug 6-7, right before the Aug 9 deadline. Living docs stay current so M4 remains a half-day export job.
+3. Candidate upgrade pool (prioritize with user): expanded card pool (upgrades/modifiers — user request), more spells/classes (needs model retrain), combo system, endless mode post-win, leaderboard (local), title screen art, ko/en toggle
 
 ## Session 1 close notes
 - M3.2 verified by participant on live Pages build: L/R Shift cast OK, aimed casting lands at hover point with reticle OK, auto-target fallback OK.
