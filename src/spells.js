@@ -1,7 +1,7 @@
 // spells.js — the 8 drawable spells. Order MUST match model classes:
 // ["lightning","circle","triangle","star","cloud","sword","square","campfire"]
 // power = 0.5 + confidence (so a clean drawing hits ~1.5x a sloppy one).
-import { FIELD, damageMonster, frontmost, densestPoint, nearest, emit } from './game.js';
+import { FIELD, TUNE, damageMonster, frontmost, densestPoint, nearest, emit } from './game.js';
 
 let zoneId = 1;
 const NONE = new Set();
@@ -121,7 +121,7 @@ export const SPELLS = [
 export function castByIndex(g, classIdx, confidence, target = null) {
   const spell = SPELLS[classIdx];
   if (!spell || g.state !== 'playing' || !g.unlocked.has(classIdx)) return false;
-  const p = 0.5 + confidence;
+  const p = (0.5 + confidence) * (1 + TUNE.spellGrowth * Math.max(0, g.wave - 1));
   const ok = spell.cast(g, p, target);
   if (ok) { g.casts += 1; emit(g, 'cast', { key: spell.key, confidence }); }
   return ok;

@@ -7,18 +7,30 @@ export const TUNE = {
   gateHP: 100,
   waves: 10,
   wavePause: 2.5,
-  spawnInterval: 0.75,
+  spawnInterval: 0.85,
   monster: (wave) => ({
-    hp: 18 + 9 * wave,
-    speed: 42 + 3.5 * wave,
-    dps: 6 + wave,
+    hp: 16 + 6.5 * wave,
+    speed: 42 + 3 * wave,
+    dps: 5 + 0.7 * wave,
     radius: 16 + Math.min(8, wave),
   }),
-  waveCount: (wave) => 3 + 2 * wave,
+  waveCount: (wave) => Math.round(3 + 1.5 * wave),
   scoreKill: 10,
   numSpells: 8,
   startSpells: [5, 0],        // sword, lightning (classes order: lightning,circle,triangle,star,cloud,sword,square,campfire)
   draftSize: 3,
+  // Monster archetypes (multipliers on the wave-scaled base stats)
+  types: {
+    norm: { hp: 1,    speed: 1,    dps: 1,   radius: 1,    color: '#ff8fa3' },
+    fast: { hp: 0.5,  speed: 1.9,  dps: 0.8, radius: 0.72, color: '#5ee7ff' },
+    tank: { hp: 2.6,  speed: 0.55, dps: 1.7, radius: 1.5,  color: '#c07dff' },
+  },
+  typeWeights: (wave) =>
+    wave >= 6 ? [['norm', 0.5], ['fast', 0.28], ['tank', 0.22]]
+    : wave >= 4 ? [['norm', 0.68], ['fast', 0.32]]
+    : [['norm', 1]],
+  boss: { hp: 9, speed: 0.42, dps: 4, radius: 2.6, color: '#ffd166' },   // multipliers, spawns once on final wave
+  spellGrowth: 0.15,          // spell power +7% per wave — player scales alongside the horde
 };
 
 let nextId = 1;
@@ -41,6 +53,7 @@ export function createGame(opts = {}) {
     score: 0,
     unlocked: new Set(opts.unlocked ?? TUNE.startSpells),
     pendingDraft: null,       // [classIdx, ...] while player chooses; sim paused
+    bossSpawned: false,
     kills: 0,
     casts: 0,
     events: [],               // drained by renderer for fx/sound
@@ -85,6 +98,10 @@ export function update(g, dt) {
       spawnMonster(g);
       g.toSpawn -= 1;
       g.spawnTimer = TUNE.spawnInterval;
+      if (g.toSpawn === 0 && g.wave === TUNE.waves && !g.bossSpawned) {
+        g.bossSpawned = true;
+        spawnMonster(g, { boss: true });
+      }
     }
     if (g.toSpawn === 0) g.waveState = 'clearing';
   } else if (g.waveState === 'clearing') {
@@ -157,18 +174,36 @@ export function update(g, dt) {
   if (g.gateHP <= 0) { g.gateHP = 0; g.state = 'lose'; emit(g, 'lose'); }
 }
 
-function spawnMonster(g) {
-  const t = TUNE.monster(g.wave);
+function pickType(g) {
+  const weights = TUNE.typeWeights(g.wave);
+  let r = g.rng();
+  for (const [kind, w] of weights) {
+    if (r < w) return kind;
+    r -= w;
+  }
+  return 'norm';
+}
+
+function spawnMonster(g, opts = {}) {
+  const base = TUNE.monster(g.wave);
+  const kind = opts.boss ? 'boss' : pickType(g);
+  const t = opts.boss ? TUNE.boss : TUNE.types[kind];
   const m = {
     id: nextId++,
+    kind,
+    boss: !!opts.boss,
     x: FIELD.W + 20,
-    y: 60 + g.rng() * (FIELD.H - 120),
+    y: opts.boss ? FIELD.H / 2 : 60 + g.rng() * (FIELD.H - 120),
     wobble: g.rng() * Math.PI * 2,
-    ...t,
-    maxHp: t.hp,
+    hp: base.hp * t.hp,
+    maxHp: base.hp * t.hp,
+    speed: base.speed * t.speed,
+    dps: base.dps * t.dps,
+    radius: Math.round(base.radius * t.radius),
+    color: t.color,
   };
   g.monsters.push(m);
-  emit(g, 'spawn', { id: m.id });
+  emit(g, opts.boss ? 'bossSpawn' : 'spawn', { id: m.id });
   return m;
 }
 
@@ -179,8 +214,8 @@ export function damageMonster(g, m, dmg, quiet = false) {
   if (m.hp <= 0 && !m.dead) {
     m.dead = true;
     g.kills += 1;
-    g.score += TUNE.scoreKill * g.wave;
-    emit(g, 'kill', { x: m.x, y: m.y, id: m.id });
+    g.score += TUNE.scoreKill * g.wave * (m.boss ? 10 : 1);
+    emit(g, m.boss ? 'bossKill' : 'kill', { x: m.x, y: m.y, id: m.id });
   }
 }
 

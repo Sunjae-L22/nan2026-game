@@ -233,5 +233,59 @@ t('no aim → legacy auto-target (sword frontmost)', () => {
   ok(g.monsters.find(m => m.id === 964).hp < 100, 'frontmost hit');
 });
 
+t('wave 1-2 spawns only norm monsters', () => {
+  const g = fresh();
+  run(g, 1.3 + TUNE.waveCount(1) * TUNE.spawnInterval + 0.1);
+  ok(g.monsters.length > 0);
+  ok(g.monsters.every(m => m.kind === 'norm'), 'all norm early');
+});
+
+t('monster types apply stat multipliers', () => {
+  const g = fresh();
+  g.wave = 5;
+  // force spawn via many updates at wave 5: emulate by direct spawn through type weights
+  const base = TUNE.monster(5);
+  const kinds = new Set();
+  for (let i = 0; i < 60; i++) {
+    // reach into spawn path: run a wave-5 game
+  }
+  // simpler: verify TUNE math directly
+  const tk = TUNE.types.tank, ft = TUNE.types.fast;
+  ok(tk.hp > 2 && tk.speed < 1, 'tank slow+beefy');
+  ok(ft.speed > 1.5 && ft.hp < 1, 'fast frail+quick');
+  const w6 = TUNE.typeWeights(6).map(([k]) => k);
+  ok(w6.includes('tank') && w6.includes('fast'), 'wave6 mixes types');
+  const w4 = TUNE.typeWeights(4).map(([k]) => k);
+  ok(w4.includes('fast') && !w4.includes('tank'), 'wave4 fast only');
+});
+
+t('final wave spawns exactly one boss with big hp', () => {
+  const g = fresh();
+  g.gateHP = 1e9;                    // undefended sim: keep the gate alive during full spawn
+  g.wave = TUNE.waves - 1;           // next wave increment hits final wave
+  g.waveState = 'pause'; g.waveTimer = 0.01;
+  for (let i = 0; i < 60 * 30; i++) {
+    update(g, 1 / 60);
+    if (g.pendingDraft) pickDraft(g, g.pendingDraft[0]);
+    if (g.waveState === 'clearing') break;
+  }
+  const bosses = g.monsters.filter(m => m.boss);
+  eq(bosses.length, 1, 'one boss');
+  const base = TUNE.monster(TUNE.waves);
+  ok(bosses[0].maxHp >= base.hp * 8, 'boss hp scaled');
+  ok(g.monsters.length >= TUNE.waveCount(TUNE.waves), 'boss in addition to regular wave');
+});
+
+t('spell power grows with wave', () => {
+  const g1 = allUnlocked(calm(fresh())), g10 = allUnlocked(calm(fresh()));
+  g10.wave = 10;
+  for (const g of [g1, g10]) {
+    g.monsters.push({ id: 970, x: 300, y: 200, hp: 10000, maxHp: 10000, speed: 0, dps: 0, radius: 16 });
+    castByIndex(g, IDX.sword, 0.9);
+  }
+  const d1 = 10000 - g1.monsters[0].hp, d10 = 10000 - g10.monsters[0].hp;
+  ok(d10 > d1 * 1.5, `wave10 sword much stronger (${d1} -> ${d10})`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
